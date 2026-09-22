@@ -1,0 +1,27 @@
+# Environment files & secrets
+.env
+*.env
+backend/.env
+frontend/.env
+
+# Python / Virtual Environment
+__pycache__/
+*.py[cod]
+*$py.class
+venv/
+.venv/
+backend/venv/
+backend/kollab.db
+
+# Node / React
+node_modules/
+dist/
+.output/
+.vite/
+*.log
+
+# IDE & System
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
