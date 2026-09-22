@@ -36,6 +36,8 @@
 | **Icons & Visuals** | Lucide React, Recharts |
 | **Backend API** | Python, FastAPI, Async SQLAlchemy, Pydantic |
 | **Database** | SQLite / PostgreSQL (Async Engine) |
+| **Cloud Infrastructure** | AWS (App Runner, RDS PostgreSQL, S3 Bucket) |
+| **Infrastructure as Code** | HashiCorp Terraform |
 | **Security & Auth** | Passlib (Bcrypt), PyJWT authentication middleware |
 
 ---
@@ -60,6 +62,12 @@ Kollab-Platform/
 │   │   ├── store/            # Zustand Persistent Stores (projectStore, kanbanStore, authStore)
 │   │   └── types/            # TypeScript Interfaces
 │   └── package.json          # Node.js Dependencies & Build Scripts
+├── infra/
+│   └── terraform/            # Terraform AWS Provisioning (App Runner, RDS, S3)
+│       ├── main.tf           # AWS Provider, S3, RDS & App Runner resources
+│       ├── variables.tf      # Environment & Region Configuration
+│       ├── outputs.tf        # Service URL & Endpoint Exports
+│       └── terraform.tfvars.example
 └── README.md                 # Platform Documentation
 ```
 
@@ -70,6 +78,7 @@ Kollab-Platform/
 ### Prerequisites
 - **Node.js**: v18.0.0 or higher
 - **Python**: v3.10 or higher
+- **Terraform**: v1.5+ *(Optional for Cloud Deployment)*
 
 ---
 
@@ -111,6 +120,38 @@ npm install
 # Start Vite development server (runs on http://localhost:5173)
 npm run dev
 ```
+
+---
+
+## ☁️ AWS Infrastructure Deployment (Terraform)
+
+Kollab includes production-ready HashiCorp Terraform configuration for automated deployment on Amazon Web Services (AWS).
+
+### Provisioned AWS Resources:
+- **AWS App Runner**: Managed container service hosting the FastAPI backend.
+- **AWS RDS (PostgreSQL)**: Fully managed relational database instance.
+- **AWS S3 Bucket**: Secure storage for student resume PDFs and avatar uploads.
+
+### Terraform Deployment Commands:
+
+```bash
+# Navigate to terraform configuration directory
+cd infra/terraform
+
+# Initialize Terraform AWS provider plugins
+terraform init
+
+# Create your terraform.tfvars file
+cp terraform.tfvars.example terraform.tfvars
+
+# Preview planned cloud infrastructure creation
+terraform plan
+
+# Apply and provision resources on AWS
+terraform apply
+```
+
+Upon completion, Terraform outputs your live backend **App Runner Service URL** and database endpoints.
 
 ---
 
