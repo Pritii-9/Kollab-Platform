@@ -44,6 +44,26 @@ export default function StudentDashboard() {
     )
   }
 
+  const currentYear = user?.year || 3
+  const stepperData = [1, 2, 3, 4].map((y) => {
+    let status = 'Upcoming'
+    if (y < currentYear) status = 'Completed'
+    else if (y === currentYear) status = 'Current'
+
+    const labels: Record<number, string> = {
+      1: 'Foundations',
+      2: 'Core Technical',
+      3: 'Specialization & Projects',
+      4: 'Placement & Industry'
+    }
+
+    return {
+      yr: `Year ${y}`,
+      status,
+      label: labels[y]
+    }
+  })
+
   return (
     <div className="space-y-6">
       {/* Hero Banner */}
@@ -53,7 +73,7 @@ export default function StudentDashboard() {
             Good morning, {user?.name || 'Student'} 👋
           </h2>
           <p className="text-xs text-indigo-200 mt-1">
-            Year 3 · Batch A · <span className="font-bold text-amber-400">245 days to campus placement</span>
+            Year {user?.year || 3} · {user?.batch || 'Batch A'} · {user?.department || 'Computer Science & Engineering'}
           </p>
         </div>
         <button
@@ -66,14 +86,14 @@ export default function StudentDashboard() {
 
       {/* 4 Stat Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard title="Trust Score" value={0} subtitle="No trust score yet" icon={<Award size={20} />}>
-          <TrustScoreGauge score={0} size={60} showLabel={false} />
+        <StatCard title="Trust Score" value={user?.trustScore || 0} subtitle={user?.trustScore ? `Trust rating ${user.trustScore}` : "No trust score yet"} icon={<Award size={20} />}>
+          <TrustScoreGauge score={user?.trustScore || 0} size={60} showLabel={false} />
         </StatCard>
 
         <StatCard
           title="Skills Verified"
-          value="0"
-          subtitle="Take skill assessments to earn badges"
+          value={user?.skills?.filter((s: any) => s.status === 'verified').length || 0}
+          subtitle="Verified skill badges"
           icon={<Award size={20} />}
           iconBg="bg-emerald-500/10 text-emerald-400 border border-emerald-500/20"
         >
@@ -103,12 +123,7 @@ export default function StudentDashboard() {
       <div className="p-6 rounded-2xl bg-[#0f172a] border border-[#1e293b]">
         <h3 className="text-sm font-bold text-white mb-4">Degree Progression Tracker</h3>
         <div className="grid grid-cols-4 gap-2 relative">
-          {[
-            { yr: 'Year 1', status: 'Completed', label: 'Foundations' },
-            { yr: 'Year 2', status: 'Completed', label: 'Core Technical' },
-            { yr: 'Year 3', status: 'Current', label: 'Specialization & Projects' },
-            { yr: 'Year 4', status: 'Upcoming', label: 'Placement & Industry' }
-          ].map((step, idx) => (
+          {stepperData.map((step, idx) => (
             <div
               key={idx}
               className={`p-3 rounded-xl border text-center transition-all ${
