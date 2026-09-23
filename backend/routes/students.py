@@ -10,9 +10,34 @@ from schemas.student import (
     TimelineEventSchema
 )
 from services.student_service import StudentService
+from services.matchmaker_service import MatchmakerService
+from services.readiness_service import ReadinessService
 from utils.jwt import get_current_user
 
 router = APIRouter(prefix="/students", tags=["Students"])
+
+@router.get("/recommend-teammates")
+@router.post("/recommend-teammates")
+async def recommend_teammates(
+    skills: Optional[List[str]] = Query(None),
+    role: Optional[str] = Query(None),
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    skills_list = skills or ["React", "Node.js", "Python", "FastAPI"]
+    return await MatchmakerService.find_teammate_matches(
+        session=db,
+        required_skills=skills_list,
+        owner_id=current_user.id,
+        preferred_role=role or ""
+    )
+
+@router.get("/me/readiness")
+async def get_my_placement_readiness(
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    return await ReadinessService.calculate_student_readiness(db, current_user.id)
 
 @router.get("", response_model=List[StudentDetailResponse])
 async def list_students(

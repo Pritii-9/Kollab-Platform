@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuthStore } from '@/store/authStore'
 import { useProjectStore } from '@/store/projectStore'
+import { studentsApi, type PlacementReadinessResult } from '@/api/students.api'
 import StatCard from '@/components/dashboard/StatCard'
 import TrustScoreGauge from '@/components/charts/TrustScoreGauge'
 import ActivityAreaChart from '@/components/charts/ActivityAreaChart'
@@ -13,10 +14,16 @@ export default function StudentDashboard() {
   const { user } = useAuthStore()
   const { projects, fetchProjects } = useProjectStore()
   const [loading, setLoading] = useState(true)
+  const [readiness, setReadiness] = useState<PlacementReadinessResult | null>(null)
 
   useEffect(() => {
     document.title = 'Dashboard — Kollab'
     fetchProjects()
+    studentsApi.getPlacementReadiness().then((res) => {
+      setReadiness(res)
+    }).catch((err) => {
+      console.warn('Readiness API error:', err)
+    })
     const timer = setTimeout(() => setLoading(false), 800)
     return () => clearTimeout(timer)
   }, [])
@@ -177,24 +184,52 @@ export default function StudentDashboard() {
 
         <div className="lg:col-span-5 space-y-6">
           <div className="p-5 rounded-2xl bg-[#0f172a] border border-[#1e293b] space-y-3">
-            <div className="flex items-center gap-2 text-indigo-400 font-bold text-xs">
-              <Sparkles size={16} /> AI Career Recommendations
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2 text-indigo-400 font-bold text-xs">
+                <Sparkles size={16} /> AI Placement Readiness Analysis
+              </div>
+              {readiness && (
+                <span className={`px-2 py-0.5 rounded-md text-[10px] font-extrabold border ${
+                  readiness.readinessScore >= 80
+                    ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
+                    : readiness.readinessScore >= 60
+                    ? 'bg-amber-500/10 text-amber-400 border-amber-500/20'
+                    : 'bg-rose-500/10 text-rose-400 border-rose-500/20'
+                }`}>
+                  {readiness.readinessScore}% · {readiness.status}
+                </span>
+              )}
             </div>
             <div className="space-y-2 text-xs">
-              <div
-                onClick={() => navigate('/student/teammates')}
-                className="p-3 rounded-xl bg-[#080d18] border border-[#1e293b] hover:border-indigo-500/40 cursor-pointer flex items-center justify-between"
-              >
-                <span className="text-slate-200 font-medium">Find AI-matched teammate for Project</span>
-                <ArrowRight size={14} className="text-slate-500" />
-              </div>
-              <div
-                onClick={() => navigate('/student/ai-tools')}
-                className="p-3 rounded-xl bg-[#080d18] border border-[#1e293b] hover:border-indigo-500/40 cursor-pointer flex items-center justify-between"
-              >
-                <span className="text-slate-200 font-medium">Generate AI Resume Action Bullets</span>
-                <ArrowRight size={14} className="text-slate-500" />
-              </div>
+              {readiness && readiness.recommendations && readiness.recommendations.length > 0 ? (
+                readiness.recommendations.map((rec, idx) => (
+                  <div
+                    key={idx}
+                    onClick={() => navigate('/student/teammates')}
+                    className="p-3 rounded-xl bg-[#080d18] border border-[#1e293b] hover:border-indigo-500/40 cursor-pointer flex items-center justify-between"
+                  >
+                    <span className="text-slate-200 font-medium leading-relaxed">{rec}</span>
+                    <ArrowRight size={14} className="text-slate-500 shrink-0 ml-2" />
+                  </div>
+                ))
+              ) : (
+                <>
+                  <div
+                    onClick={() => navigate('/student/teammates')}
+                    className="p-3 rounded-xl bg-[#080d18] border border-[#1e293b] hover:border-indigo-500/40 cursor-pointer flex items-center justify-between"
+                  >
+                    <span className="text-slate-200 font-medium">Find AI-matched teammate for Project</span>
+                    <ArrowRight size={14} className="text-slate-500 shrink-0" />
+                  </div>
+                  <div
+                    onClick={() => navigate('/student/ai-tools')}
+                    className="p-3 rounded-xl bg-[#080d18] border border-[#1e293b] hover:border-indigo-500/40 cursor-pointer flex items-center justify-between"
+                  >
+                    <span className="text-slate-200 font-medium">Generate AI Resume Action Bullets</span>
+                    <ArrowRight size={14} className="text-slate-500 shrink-0" />
+                  </div>
+                </>
+              )}
             </div>
           </div>
         </div>
