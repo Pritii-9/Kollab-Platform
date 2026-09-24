@@ -15,6 +15,7 @@ import BatchManagement from '@/pages/coordinator/BatchManagement'
 import StudentList from '@/pages/coordinator/StudentList'
 import StudentTimeline from '@/pages/coordinator/StudentTimeline'
 import AssignTest from '@/pages/coordinator/AssignTest'
+import TestResultsMatrix from '@/pages/coordinator/TestResultsMatrix'
 import Reports from '@/pages/coordinator/Reports'
 import Announcements from '@/pages/coordinator/Announcements'
 
@@ -88,6 +89,7 @@ export default function App() {
             <Route path="students"      element={<StudentList />} />
             <Route path="students/:id"  element={<StudentTimeline />} />
             <Route path="assign-test"   element={<AssignTest />} />
+            <Route path="test-results"  element={<TestResultsMatrix />} />
             <Route path="reports"       element={<Reports />} />
             <Route path="announcements" element={<Announcements />} />
           </Route>

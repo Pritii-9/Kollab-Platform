@@ -7,199 +7,29 @@ import type { BatchReport } from '../types/report.types'
 // ── Students ──────────────────────────────────────────────────────
 export const MOCK_STUDENTS: Student[] = [
   {
-    id: 's1', name: 'Aanya Sharma', email: 'aanya@college.edu',
+    id: 'student-priti', name: 'Priti Jadhav', email: 'priti@college.edu',
     rollNumber: 'CSE21001', department: 'Computer Science & Engineering',
-    year: 3, batch: 'A', cgpa: 8.9, avatar: undefined,
+    year: 4, batch: 'CSE Batch B', cgpa: 8.9, avatar: undefined,
     trustScore: 92, placementStatus: 'Eligible',
     skills: [
-      { id: 'sk1', name: 'React',    status: 'verified', score: 88 },
-      { id: 'sk2', name: 'Node.js',  status: 'verified', score: 82 },
-      { id: 'sk3', name: 'Python',   status: 'pending',  score: 65 },
-      { id: 'sk4', name: 'MongoDB',  status: 'verified', score: 79 },
+      { id: 'sk1', name: 'React',    status: 'verified', score: 92 },
+      { id: 'sk2', name: 'Node.js',  status: 'verified', score: 88 },
+      { id: 'sk3', name: 'Python',   status: 'verified', score: 90 },
+      { id: 'sk4', name: 'FastAPI',  status: 'verified', score: 86 },
     ],
-    github: 'github.com/aanya', linkedin: 'linkedin.com/in/aanya',
-    bio: 'Full stack developer passionate about scalable web applications.',
-    reviews: [
-      { id: 'r1', reviewerId: 's2', reviewerName: 'Rohan Mehta', projectName: 'EduPortal', rating: 5, comment: 'Excellent collaborator, always on time!', date: '2025-03-15' },
-    ],
-    availability: { openToProjects: true, preferredRoles: ['Frontend', 'Fullstack'] },
-    testsCompleted: 7, projectsJoined: 3, joinedAt: '2021-08-01',
-  },
-  {
-    id: 's2', name: 'Rohan Mehta', email: 'rohan@college.edu',
-    rollNumber: 'CSE21002', department: 'Computer Science & Engineering',
-    year: 3, batch: 'A', cgpa: 8.2, avatar: undefined,
-    trustScore: 78, placementStatus: 'Eligible',
-    skills: [
-      { id: 'sk5', name: 'Python',   status: 'verified', score: 91 },
-      { id: 'sk6', name: 'ML',       status: 'verified', score: 85 },
-      { id: 'sk7', name: 'React',    status: 'pending',  score: 60 },
-    ],
-    github: 'github.com/rohan', linkedin: undefined, bio: 'Data science enthusiast.',
-    reviews: [], availability: { openToProjects: true, preferredRoles: ['Backend', 'ML'] },
-    testsCompleted: 5, projectsJoined: 2, joinedAt: '2021-08-01',
-  },
-  {
-    id: 's3', name: 'Priya Nair', email: 'priya@college.edu',
-    rollNumber: 'CSE22001', department: 'Computer Science & Engineering',
-    year: 2, batch: 'B', cgpa: 9.1, avatar: undefined,
-    trustScore: 95, placementStatus: 'Eligible',
-    skills: [
-      { id: 'sk8',  name: 'TypeScript', status: 'verified', score: 94 },
-      { id: 'sk9',  name: 'React',      status: 'verified', score: 90 },
-      { id: 'sk10', name: 'AWS',        status: 'verified', score: 72 },
-    ],
-    github: 'github.com/priya', linkedin: 'linkedin.com/in/priya',
-    bio: 'TypeScript enthusiast and open source contributor.',
-    reviews: [
-      { id: 'r2', reviewerId: 's4', reviewerName: 'Arjun Singh', projectName: 'HealthTrack', rating: 5, comment: 'Amazing problem-solver!', date: '2025-04-01' },
-    ],
-    availability: { openToProjects: true, preferredRoles: ['Frontend'] },
-    testsCompleted: 9, projectsJoined: 4, joinedAt: '2022-08-01',
-  },
-  {
-    id: 's4', name: 'Arjun Singh', email: 'arjun@college.edu',
-    rollNumber: 'CSE20001', department: 'Computer Science & Engineering',
-    year: 4, batch: 'C', cgpa: 7.8, avatar: undefined,
-    trustScore: 68, placementStatus: 'In Process',
-    skills: [
-      { id: 'sk11', name: 'Java',       status: 'verified', score: 80 },
-      { id: 'sk12', name: 'Spring Boot', status: 'pending', score: 55 },
-      { id: 'sk13', name: 'Docker',     status: 'failed',   score: 40 },
-    ],
-    github: 'github.com/arjun', linkedin: undefined, bio: 'Backend Java developer.',
-    reviews: [], availability: { openToProjects: false, preferredRoles: ['Backend'] },
-    testsCompleted: 4, projectsJoined: 2, joinedAt: '2020-08-01',
-  },
-  {
-    id: 's5', name: 'Sneha Patel', email: 'sneha@college.edu',
-    rollNumber: 'IT21003', department: 'Information Technology',
-    year: 3, batch: 'A', cgpa: 8.5, avatar: undefined,
-    trustScore: 84, placementStatus: 'Eligible',
-    skills: [
-      { id: 'sk14', name: 'Flutter',    status: 'verified', score: 88 },
-      { id: 'sk15', name: 'Firebase',   status: 'verified', score: 82 },
-      { id: 'sk16', name: 'Dart',       status: 'pending',  score: 70 },
-    ],
-    github: 'github.com/sneha', linkedin: 'linkedin.com/in/sneha',
-    bio: 'Mobile dev, flutter lover.',
-    reviews: [], availability: { openToProjects: true, preferredRoles: ['Mobile', 'Frontend'] },
-    testsCompleted: 6, projectsJoined: 3, joinedAt: '2021-08-01',
-  },
-  {
-    id: 's6', name: 'Karan Verma', email: 'karan@college.edu',
-    rollNumber: 'CSE23001', department: 'Computer Science & Engineering',
-    year: 1, batch: 'B', cgpa: 7.5, avatar: undefined,
-    trustScore: 52, placementStatus: 'Ineligible',
-    skills: [
-      { id: 'sk17', name: 'Python', status: 'pending', score: 45 },
-      { id: 'sk18', name: 'Git',    status: 'verified', score: 70 },
-    ],
-    github: undefined, linkedin: undefined, bio: 'First year CSE student learning the ropes.',
-    reviews: [], availability: { openToProjects: true, preferredRoles: ['Backend'] },
-    testsCompleted: 2, projectsJoined: 1, joinedAt: '2023-08-01',
-  },
-  {
-    id: 's7', name: 'Divya Reddy', email: 'divya@college.edu',
-    rollNumber: 'EC21002', department: 'Electronics & Communication',
-    year: 3, batch: 'A', cgpa: 8.0, avatar: undefined,
-    trustScore: 73, placementStatus: 'Eligible',
-    skills: [
-      { id: 'sk19', name: 'Python',      status: 'verified', score: 76 },
-      { id: 'sk20', name: 'ML',          status: 'pending',  score: 61 },
-      { id: 'sk21', name: 'Data Structures', status: 'verified', score: 83 },
-    ],
-    github: 'github.com/divya', linkedin: undefined, bio: 'IoT + ML enthusiast.',
-    reviews: [], availability: { openToProjects: true, preferredRoles: ['Backend', 'ML'] },
-    testsCompleted: 5, projectsJoined: 2, joinedAt: '2021-08-01',
-  },
-  {
-    id: 's8', name: 'Vikram Joshi', email: 'vikram@college.edu',
-    rollNumber: 'CSE20002', department: 'Computer Science & Engineering',
-    year: 4, batch: 'A', cgpa: 9.3, avatar: undefined,
-    trustScore: 97, placementStatus: 'Placed',
-    skills: [
-      { id: 'sk22', name: 'System Design', status: 'verified', score: 96 },
-      { id: 'sk23', name: 'Go',            status: 'verified', score: 90 },
-      { id: 'sk24', name: 'Kubernetes',    status: 'verified', score: 85 },
-      { id: 'sk25', name: 'PostgreSQL',    status: 'verified', score: 88 },
-    ],
-    github: 'github.com/vikram', linkedin: 'linkedin.com/in/vikram',
-    bio: 'SWE @ Google. Loves distributed systems.',
-    reviews: [
-      { id: 'r3', reviewerId: 's3', reviewerName: 'Priya Nair', projectName: 'CloudDeploy', rating: 5, comment: 'World-class engineer!', date: '2025-05-01' },
-    ],
-    availability: { openToProjects: false, preferredRoles: [] },
-    testsCompleted: 12, projectsJoined: 6, joinedAt: '2020-08-01',
-  },
-  {
-    id: 's9', name: 'Neha Gupta', email: 'neha@college.edu',
-    rollNumber: 'IT22002', department: 'Information Technology',
-    year: 2, batch: 'C', cgpa: 7.9, avatar: undefined,
-    trustScore: 61, placementStatus: 'Eligible',
-    skills: [
-      { id: 'sk26', name: 'React',       status: 'pending',  score: 58 },
-      { id: 'sk27', name: 'JavaScript',  status: 'verified', score: 74 },
-    ],
-    github: undefined, linkedin: undefined, bio: 'Learning React and web development.',
-    reviews: [], availability: { openToProjects: true, preferredRoles: ['Frontend'] },
-    testsCompleted: 3, projectsJoined: 1, joinedAt: '2022-08-01',
-  },
-  {
-    id: 's10', name: 'Rahul Das', email: 'rahul@college.edu',
-    rollNumber: 'CSE22003', department: 'Computer Science & Engineering',
-    year: 2, batch: 'A', cgpa: 8.4, avatar: undefined,
-    trustScore: 80, placementStatus: 'Eligible',
-    skills: [
-      { id: 'sk28', name: 'Node.js',   status: 'verified', score: 81 },
-      { id: 'sk29', name: 'MongoDB',   status: 'verified', score: 77 },
-      { id: 'sk30', name: 'Express',   status: 'verified', score: 79 },
-    ],
-    github: 'github.com/rahul', linkedin: 'linkedin.com/in/rahul',
-    bio: 'MERN stack developer.',
-    reviews: [], availability: { openToProjects: true, preferredRoles: ['Backend', 'Fullstack'] },
-    testsCompleted: 6, projectsJoined: 2, joinedAt: '2022-08-01',
-  },
-  {
-    id: 's11', name: 'Ananya Krishnan', email: 'ananya@college.edu',
-    rollNumber: 'CSE21004', department: 'Computer Science & Engineering',
-    year: 3, batch: 'B', cgpa: 8.7, avatar: undefined,
-    trustScore: 88, placementStatus: 'Eligible',
-    skills: [
-      { id: 'sk31', name: 'Figma',    status: 'verified', score: 90 },
-      { id: 'sk32', name: 'React',    status: 'verified', score: 86 },
-      { id: 'sk33', name: 'CSS',      status: 'verified', score: 92 },
-    ],
-    github: 'github.com/ananya', linkedin: 'linkedin.com/in/ananya',
-    bio: 'UI/UX Designer + Frontend dev.',
-    reviews: [], availability: { openToProjects: true, preferredRoles: ['UI/UX', 'Frontend'] },
-    testsCompleted: 8, projectsJoined: 4, joinedAt: '2021-08-01',
-  },
-  {
-    id: 's12', name: 'Dev Malhotra', email: 'dev@college.edu',
-    rollNumber: 'CSE20003', department: 'Computer Science & Engineering',
-    year: 4, batch: 'B', cgpa: 8.1, avatar: undefined,
-    trustScore: 75, placementStatus: 'In Process',
-    skills: [
-      { id: 'sk34', name: 'AWS',    status: 'verified', score: 83 },
-      { id: 'sk35', name: 'Docker', status: 'verified', score: 79 },
-      { id: 'sk36', name: 'Python', status: 'verified', score: 75 },
-    ],
-    github: 'github.com/dev', linkedin: 'linkedin.com/in/dev',
-    bio: 'Cloud + DevOps engineer.',
-    reviews: [], availability: { openToProjects: false, preferredRoles: ['DevOps', 'Backend'] },
-    testsCompleted: 7, projectsJoined: 3, joinedAt: '2020-08-01',
-  },
+    github: 'github.com/Pritii-9', linkedin: 'linkedin.com/in/priti-jadhav',
+    bio: 'Full stack & ML developer. Passionate about web platform architecture.',
+    reviews: [],
+    availability: { openToProjects: true, preferredRoles: ['Fullstack', 'Frontend'] },
+    testsCompleted: 4, projectsJoined: 1, joinedAt: '2021-08-01',
+  }
 ]
 
 // ── Batches ───────────────────────────────────────────────────────
 export const MOCK_BATCHES: Batch[] = [
-  { id: 'b1', name: 'CSE Y1 A', department: 'CSE', year: 1, section: 'A', coordinator: 'Dr. Ravi Shankar', academicYear: '2025-26', totalStudents: 40, skillVerified: 12, activeProjects: 4, placementReady: 0, readinessPercent: 15, status: 'Active' },
-  { id: 'b2', name: 'CSE Y1 B', department: 'CSE', year: 1, section: 'B', coordinator: 'Dr. Meena Iyer', academicYear: '2025-26', totalStudents: 38, skillVerified: 9,  activeProjects: 3, placementReady: 0, readinessPercent: 12, status: 'Active' },
-  { id: 'b3', name: 'CSE Y1 C', department: 'CSE', year: 1, section: 'C', coordinator: 'Prof. Suresh K', academicYear: '2025-26', totalStudents: 42, skillVerified: 14, activeProjects: 5, placementReady: 0, readinessPercent: 18, status: 'Active' },
-  { id: 'b4', name: 'CSE Y2 A', department: 'CSE', year: 2, section: 'A', coordinator: 'Dr. Ravi Shankar', academicYear: '2024-25', totalStudents: 39, skillVerified: 22, activeProjects: 8, placementReady: 0, readinessPercent: 42, status: 'Active' },
-  { id: 'b5', name: 'CSE Y2 B', department: 'CSE', year: 2, section: 'B', coordinator: 'Dr. Meena Iyer', academicYear: '2024-25', totalStudents: 40, skillVerified: 18, activeProjects: 6, placementReady: 0, readinessPercent: 35, status: 'Active' },
-  { id: 'b6', name: 'CSE Y2 C', department: 'CSE', year: 2, section: 'C', coordinator: 'Prof. Anita V', academicYear: '2024-25', totalStudents: 41, skillVerified: 25, activeProjects: 9, placementReady: 0, readinessPercent: 48, status: 'Active' },
+  { id: 'b-cse-a', name: 'CSE Batch A', department: 'CSE', year: 4, section: 'Batch A', coordinator: 'Dr. Ravi Shankar', academicYear: '2025-26', totalStudents: 0, skillVerified: 0, activeProjects: 0, placementReady: 0, readinessPercent: 0, status: 'Active' },
+  { id: 'b-cse-b', name: 'CSE Batch B', department: 'CSE', year: 4, section: 'Batch B', coordinator: 'Prof. Sarah Jenkins', academicYear: '2025-26', totalStudents: 1, skillVerified: 4, activeProjects: 1, placementReady: 1, readinessPercent: 92, status: 'Active' },
+  { id: 'b-cse-c', name: 'CSE Batch C', department: 'CSE', year: 4, section: 'Batch C', coordinator: 'Dr. Meena Iyer', academicYear: '2025-26', totalStudents: 0, skillVerified: 0, activeProjects: 0, placementReady: 0, readinessPercent: 0, status: 'Active' },
 ]
 
 // ── Activity chart data ────────────────────────────────────────────
@@ -369,10 +199,9 @@ export const MOCK_TEST_RESULT: TestResult = {
 
 // ── Batch reports ─────────────────────────────────────────────────
 export const MOCK_BATCH_REPORTS: BatchReport[] = [
-  { id: 'br1', batchName: 'CSE Y4 A', department: 'CSE', year: 4, totalStudents: 40, skillVerified: 36, avgCGPA: 8.2, readinessPercent: 87, placedCount: 28, topSkills: ['React', 'Node.js', 'System Design'], status: 'On Track' },
-  { id: 'br2', batchName: 'CSE Y4 B', department: 'CSE', year: 4, totalStudents: 38, skillVerified: 30, avgCGPA: 7.9, readinessPercent: 72, placedCount: 20, topSkills: ['Python', 'ML', 'Django'], status: 'On Track' },
-  { id: 'br3', batchName: 'IT Y4 A',  department: 'IT',  year: 4, totalStudents: 35, skillVerified: 22, avgCGPA: 7.5, readinessPercent: 55, placedCount: 14, topSkills: ['Java', 'Spring Boot'], status: 'Needs Attention' },
-  { id: 'br4', batchName: 'EC Y4 A',  department: 'EC',  year: 4, totalStudents: 30, skillVerified: 12, avgCGPA: 7.2, readinessPercent: 32, placedCount: 6,  topSkills: ['Python', 'Embedded C'], status: 'Critical' },
+  { id: 'br1', batchName: 'CSE Batch A', department: 'CSE', year: 4, totalStudents: 0, skillVerified: 0, avgCGPA: 0.0, readinessPercent: 0, placedCount: 0, topSkills: [], status: 'Needs Attention' },
+  { id: 'br2', batchName: 'CSE Batch B', department: 'CSE', year: 4, totalStudents: 1, skillVerified: 4, avgCGPA: 8.9, readinessPercent: 92, placedCount: 1, topSkills: ['React', 'Node.js', 'Python'], status: 'On Track' },
+  { id: 'br3', batchName: 'CSE Batch C', department: 'CSE', year: 4, totalStudents: 0, skillVerified: 0, avgCGPA: 0.0, readinessPercent: 0, placedCount: 0, topSkills: [], status: 'Needs Attention' },
 ]
 
 // ── Live activity events mock ──────────────────────────────────────

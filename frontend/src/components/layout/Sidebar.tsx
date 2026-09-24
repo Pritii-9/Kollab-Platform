@@ -1,11 +1,9 @@
 import React, { useState } from 'react'
 import { NavLink } from 'react-router-dom'
-import { useAuthStore } from '@/store/authStore'
 import { COORDINATOR_NAV, STUDENT_NAV } from '@/utils/constants'
 import { 
   ChevronLeft, 
   ChevronRight, 
-  LogOut, 
   GraduationCap,
   LayoutDashboard,
   Users,
@@ -63,7 +61,6 @@ interface SidebarProps {
 
 export function Sidebar({ role, isMobileOpen = false, onMobileClose, onCollapsedChange }: SidebarProps) {
   const [collapsed, setCollapsed] = useState(false)
-  const { user, logout } = useAuthStore()
   const navItems = role === 'coordinator' ? COORDINATOR_NAV : STUDENT_NAV
 
   const handleToggleCollapse = () => {
@@ -116,7 +113,7 @@ export function Sidebar({ role, isMobileOpen = false, onMobileClose, onCollapsed
         )}
 
         {/* Nav Links */}
-        <nav className="p-3 space-y-0.5 overflow-y-auto" style={{ maxHeight: 'calc(100vh - 180px)' }}>
+        <nav className="p-3 space-y-0.5 overflow-y-auto" style={{ maxHeight: 'calc(100vh - 80px)' }}>
           {navItems.map((item) => (
             <NavLink
               key={item.path}
@@ -140,32 +137,6 @@ export function Sidebar({ role, isMobileOpen = false, onMobileClose, onCollapsed
             </NavLink>
           ))}
         </nav>
-      </div>
-
-      {/* User Footer */}
-      <div className="p-3 border-t border-[#1e293b] bg-[#0a0f1e]">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3 overflow-hidden">
-            <div className="w-9 h-9 rounded-full bg-gradient-to-tr from-indigo-600 to-violet-500 text-white font-bold flex items-center justify-center shrink-0 text-sm shadow-md">
-              {user?.name?.[0]?.toUpperCase() || 'U'}
-            </div>
-            {!collapsed && (
-              <div className="truncate">
-                <p className="text-sm font-semibold text-slate-200 truncate">{user?.name || 'User'}</p>
-                <span className="inline-block text-[10px] uppercase tracking-wider font-semibold px-1.5 py-0.5 rounded bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">
-                  {user?.role || role}
-                </span>
-              </div>
-            )}
-          </div>
-          <button
-            onClick={logout}
-            className="p-1.5 rounded-lg text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 transition-colors shrink-0"
-            title="Log Out"
-          >
-            <LogOut size={18} />
-          </button>
-        </div>
       </div>
     </aside>
   )

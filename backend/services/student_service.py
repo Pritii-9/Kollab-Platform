@@ -33,7 +33,7 @@ class StudentService:
             selectinload(User.timeline_events)
         )
 
-        if year:
+        if year and year != 0:
             query = query.filter(User.year == year)
         if batch and batch != "all":
             query = query.filter(User.batch == batch)
@@ -78,22 +78,22 @@ class StudentService:
                 id=s.id,
                 name=s.name,
                 email=s.email,
-                rollNumber=s.roll_number or "CSE21001",
-                department=s.department or "CSE",
-                year=s.year or 3,
-                batch=s.batch or "Batch A",
-                cgpa=s.cgpa or 8.0,
+                rollNumber=s.roll_number or "N/A",
+                department=s.department or "Computer Science & Engineering",
+                year=s.year if s.year is not None else 4,
+                batch=s.batch or "Batch B",
+                cgpa=s.cgpa or 8.5,
                 avatar=s.avatar,
-                trustScore=s.trust_score,
-                placementStatus=s.placement_status,
+                trustScore=s.trust_score if s.trust_score is not None else 85,
+                placementStatus=s.placement_status or "Eligible",
                 skills=skills,
                 github=s.github,
                 linkedin=s.linkedin,
                 bio=s.bio,
                 reviews=reviews,
-                availability=AvailabilitySchema(openToProjects=True, preferredRoles=["Frontend", "Fullstack"]),
+                availability=AvailabilitySchema(openToProjects=True, preferredRoles=["Fullstack", "Frontend"]),
                 testsCompleted=len([sk for sk in s.skills if sk.status == "verified"]),
-                projectsJoined=2,
+                projectsJoined=0,
                 joinedAt=s.created_at.strftime("%Y-%m-%d") if s.created_at else "2024-08-01"
             ))
         return responses
@@ -110,7 +110,7 @@ class StudentService:
 
         if current_student_id:
             query = query.filter(User.id != current_student_id)
-        if year:
+        if year and year != 0:
             query = query.filter(User.year == year)
         if search:
             query = query.filter(User.name.ilike(f"%{search}%"))
@@ -124,21 +124,20 @@ class StudentService:
             if skill and skill.lower() not in [sn.lower() for sn in skill_names]:
                 continue
 
-            # Calculate matchmaking score based on verified skills & trust score
-            match_pct = min(98, max(65, int((s.trust_score * 0.6) + (len(skill_names) * 7))))
+            match_pct = min(98, max(65, int(((s.trust_score or 85) * 0.6) + (len(skill_names) * 7))))
 
             cards.append(StudentCardResponse(
                 id=s.id,
                 name=s.name,
                 avatar=s.avatar,
-                batch=s.batch or "Batch A",
-                year=s.year or 3,
+                batch=s.batch or "Batch B",
+                year=s.year if s.year is not None else 4,
                 department=s.department or "Computer Science & Engineering",
-                trustScore=s.trust_score,
+                trustScore=s.trust_score if s.trust_score is not None else 85,
                 matchPercentage=match_pct,
                 skills=skill_names,
-                cgpa=s.cgpa or 8.0,
-                placementStatus=s.placement_status
+                cgpa=s.cgpa or 8.5,
+                placementStatus=s.placement_status or "Eligible"
             ))
         return cards
 
@@ -182,22 +181,22 @@ class StudentService:
             id=s.id,
             name=s.name,
             email=s.email,
-            rollNumber=s.roll_number or "CSE21001",
-            department=s.department or "CSE",
-            year=s.year or 3,
-            batch=s.batch or "Batch A",
-            cgpa=s.cgpa or 8.0,
+            rollNumber=s.roll_number or "N/A",
+            department=s.department or "Computer Science & Engineering",
+            year=s.year if s.year is not None else 4,
+            batch=s.batch or "Batch B",
+            cgpa=s.cgpa or 8.5,
             avatar=s.avatar,
-            trustScore=s.trust_score,
-            placementStatus=s.placement_status,
+            trustScore=s.trust_score if s.trust_score is not None else 85,
+            placementStatus=s.placement_status or "Eligible",
             skills=skills,
             github=s.github,
             linkedin=s.linkedin,
             bio=s.bio,
             reviews=reviews,
-            availability=AvailabilitySchema(openToProjects=True, preferredRoles=["Frontend", "Fullstack"]),
+            availability=AvailabilitySchema(openToProjects=True, preferredRoles=["Fullstack", "Frontend"]),
             testsCompleted=len([sk for sk in s.skills if sk.status == "verified"]),
-            projectsJoined=2,
+            projectsJoined=0,
             joinedAt=s.created_at.strftime("%Y-%m-%d") if s.created_at else "2024-08-01"
         )
 

@@ -8,14 +8,72 @@ from models.user import User
 from schemas.batch import BatchCreate, BatchUpdate, BatchResponse
 from utils.jwt import get_current_user, require_coordinator
 
+from sqlalchemy.orm import selectinload
+from models.project import Project
+
 router = APIRouter(prefix="/batches", tags=["Batches"])
 
 @router.get("", response_model=List[BatchResponse])
 async def list_batches(db: AsyncSession = Depends(get_db)):
-    result = await db.execute(select(Batch).order_by(Batch.created_at.desc()))
+    result = await db.execute(select(Batch).order_by(Batch.name.asc()))
     batches = result.scalars().all()
-    return [
-        BatchResponse(
+
+    # If no batches exist, create default CSE Batches A, B, C
+    if not batches:
+        default_batches = [
+            {"id": "b-cse-a", "name": "CSE Batch A", "department": "CSE", "year": 4, "section": "Batch A", "coordinator": "Dr. Ravi Shankar", "academic_year": "2025-2026", "status": "Active"},
+            {"id": "b-cse-b", "name": "CSE Batch B", "department": "CSE", "year": 4, "section": "Batch B", "coordinator": "Prof. Sarah Jenkins", "academic_year": "2025-2026", "status": "Active"},
+            {"id": "b-cse-c", "name": "CSE Batch C", "department": "CSE", "year": 4, "section": "Batch C", "coordinator": "Dr. Meena Iyer", "academic_year": "2025-2026", "status": "Active"},
+        ]
+        for b in default_batches:
+            db.add(Batch(**b))
+        await db.commit()
+        result = await db.execute(select(Batch).order_by(Batch.name.asc()))
+        batches = result.scalars().all()
+
+    # Fetch all students with skills loaded
+    students_res = await db.execute(
+        select(User)
+        .filter(User.role == "student")
+        .options(selectinload(User.skills))
+    )
+    all_students = students_res.scalars().all()
+
+    # Fetch active projects
+    projects_res = await db.execute(select(Project).filter(Project.status == "Active"))
+    active_projects_count = len(projects_res.scalars().all())
+
+    response_list = []
+    for b in batches:
+        # Match students belonging to this batch (e.g. "CSE Batch B", "Batch B", "B")
+        batch_students = [
+            s for s in all_students
+            if s.batch and (
+                s.batch.strip().lower() == b.name.strip().lower()
+                or s.batch.strip().lower() == b.section.strip().lower()
+                or b.name.lower().endswith(s.batch.strip().lower())
+                or s.batch.lower().endswith(b.section.strip().lower())
+            )
+        ]
+
+        total_students = len(batch_students)
+        skill_verified = sum(
+            len([sk for sk in s.skills if sk.status == "verified"])
+            for s in batch_students
+        )
+        placement_ready = len([
+            s for s in batch_students
+            if s.placement_status in ("Eligible", "Placed")
+        ])
+
+        if total_students > 0:
+            avg_readiness = int(sum(s.trust_score or 85 for s in batch_students) / total_students)
+            b_projects = active_projects_count
+        else:
+            avg_readiness = 0
+            b_projects = 0
+
+        response_list.append(BatchResponse(
             id=b.id,
             name=b.name,
             department=b.department,
@@ -23,14 +81,15 @@ async def list_batches(db: AsyncSession = Depends(get_db)):
             section=b.section,
             coordinator=b.coordinator,
             academicYear=b.academic_year,
-            totalStudents=b.total_students,
-            skillVerified=b.skill_verified,
-            activeProjects=b.active_projects,
-            placementReady=b.placement_ready,
-            readinessPercent=b.readiness_percent,
+            totalStudents=total_students,
+            skillVerified=skill_verified,
+            activeProjects=b_projects,
+            placementReady=placement_ready,
+            readinessPercent=avg_readiness,
             status=b.status
-        ) for b in batches
-    ]
+        ))
+
+    return response_list
 
 @router.post("", response_model=BatchResponse)
 async def create_batch(

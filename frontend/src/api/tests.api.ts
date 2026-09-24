@@ -1,5 +1,5 @@
 import apiClient from './client'
-import type { Test, TestResult } from '../types/test.types'
+import type { Test, TestResult, TestAttemptRecord } from '../types/test.types'
 
 export const testsApi = {
   listTests: async (): Promise<Test[]> => {
@@ -42,4 +42,16 @@ export const testsApi = {
     const res = await apiClient.post<TestResult>(`/tests/${testId}/submit`, payload)
     return res.data
   },
+
+  getTestAttempts: async (testId?: string): Promise<TestAttemptRecord[]> => {
+    const url = testId ? `/tests/attempts?test_id=${testId}` : '/tests/attempts'
+    const res = await apiClient.get<TestAttemptRecord[]>(url)
+    return res.data
+  },
+
+  getMyTestHistory: async (): Promise<TestResult[]> => {
+    const res = await apiClient.get<TestResult[]>('/tests/my-attempts')
+    return res.data
+  },
 }
+

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
-import { Megaphone, Send, Trash2, Calendar, Users, Eye, CheckCircle2 } from 'lucide-react'
+import { Megaphone, Send, Trash2, Eye, CheckCircle2 } from 'lucide-react'
 import CustomSelect from '@/components/shared/CustomSelect'
+import CustomDatePicker from '@/components/shared/CustomDatePicker'
 
 interface AnnouncementItem {
   id: string
@@ -12,29 +13,8 @@ interface AnnouncementItem {
   timestamp: string
 }
 
-const MOCK_ANNOUNCEMENTS: AnnouncementItem[] = [
-  {
-    id: 'a1',
-    title: 'Upcoming Amazon Proctored Coding Test',
-    targetBadge: 'Batch 2026 (Year 3)',
-    message: 'All students are required to attempt the mandatory Amazon assessment skill test on Kollab before Friday 5 PM.',
-    seenCount: 184,
-    readCount: 162,
-    timestamp: '2 hours ago'
-  },
-  {
-    id: 'a2',
-    title: 'Kanban Peer Project Submissions Open',
-    targetBadge: 'All Students',
-    message: 'Final year and third year project milestones have been updated on your dashboard. Please sync your Kanban tasks.',
-    seenCount: 220,
-    readCount: 198,
-    timestamp: '1 day ago'
-  }
-]
-
 export default function Announcements() {
-  const [announcements, setAnnouncements] = useState<AnnouncementItem[]>(MOCK_ANNOUNCEMENTS)
+  const [announcements, setAnnouncements] = useState<AnnouncementItem[]>([])
   const [isFormOpen, setIsFormOpen] = useState(false)
 
   // Form state
@@ -123,9 +103,10 @@ export default function Announcements() {
                 onChange={setTarget}
                 options={[
                   { value: 'All Students', label: 'All Students (Entire Dept)' },
-                  { value: 'Batch 2026 (Year 3)', label: 'Batch 2026 (Year 3)' },
-                  { value: 'Batch 2025 (Year 4)', label: 'Batch 2025 (Year 4)' },
-                  { value: 'Batch A', label: 'Batch A Only' }
+                  { value: 'Year 1 Cohort', label: 'Year 1 Cohort' },
+                  { value: 'Year 2 Cohort', label: 'Year 2 Cohort' },
+                  { value: 'Year 3 Cohort', label: 'Year 3 Cohort' },
+                  { value: 'Year 4 Cohort', label: 'Year 4 Cohort' }
                 ]}
                 className="w-full"
               />
@@ -142,11 +123,11 @@ export default function Announcements() {
                 Schedule Broadcast
               </label>
               {isScheduled && (
-                <input
-                  type="date"
+                <CustomDatePicker
                   value={scheduleDate}
-                  onChange={(e) => setScheduleDate(e.target.value)}
-                  className="px-3 py-1.5 rounded-xl bg-[#080d18] border border-[#1e293b] text-xs text-white"
+                  onChange={(val) => setScheduleDate(val)}
+                  placeholder="Select schedule date..."
+                  className="w-48"
                 />
               )}
             </div>
@@ -171,41 +152,51 @@ export default function Announcements() {
       )}
 
       {/* Announcements List */}
-      <div className="space-y-4">
-        {announcements.map((item) => (
-          <div
-            key={item.id}
-            className="p-6 rounded-2xl bg-[#0f172a] border border-[#1e293b] hover:border-slate-700 transition-all duration-300 shadow-xl space-y-3"
-          >
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">
-                  {item.targetBadge}
-                </span>
-                <span className="text-xs text-slate-500">{item.timestamp}</span>
+      {announcements.length === 0 ? (
+        <div className="p-12 rounded-2xl bg-[#0f172a] border border-[#1e293b] text-center space-y-3">
+          <Megaphone size={36} className="mx-auto text-slate-600" />
+          <h3 className="font-bold text-white text-sm">No Broadcast Announcements</h3>
+          <p className="text-xs text-slate-400 max-w-sm mx-auto">
+            There are currently no active announcements. Click "+ Compose Announcement" above to send an update to students.
+          </p>
+        </div>
+      ) : (
+        <div className="space-y-4">
+          {announcements.map((item) => (
+            <div
+              key={item.id}
+              className="p-6 rounded-2xl bg-[#0f172a] border border-[#1e293b] hover:border-slate-700 transition-all duration-300 shadow-xl space-y-3"
+            >
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">
+                    {item.targetBadge}
+                  </span>
+                  <span className="text-xs text-slate-500">{item.timestamp}</span>
+                </div>
+                <button
+                  onClick={() => handleDelete(item.id)}
+                  className="p-1.5 rounded-lg text-slate-400 hover:text-rose-400 hover:bg-rose-500/10"
+                >
+                  <Trash2 size={16} />
+                </button>
               </div>
-              <button
-                onClick={() => handleDelete(item.id)}
-                className="p-1.5 rounded-lg text-slate-400 hover:text-rose-400 hover:bg-rose-500/10"
-              >
-                <Trash2 size={16} />
-              </button>
-            </div>
 
-            <h3 className="text-base font-bold text-white">{item.title}</h3>
-            <p className="text-xs text-slate-300 leading-relaxed">{item.message}</p>
+              <h3 className="text-base font-bold text-white">{item.title}</h3>
+              <p className="text-xs text-slate-300 leading-relaxed">{item.message}</p>
 
-            <div className="flex items-center gap-6 pt-3 border-t border-[#1e293b] text-xs text-slate-400">
-              <span className="flex items-center gap-1.5">
-                <Eye size={14} className="text-indigo-400" /> {item.seenCount} Seen
-              </span>
-              <span className="flex items-center gap-1.5">
-                <CheckCircle2 size={14} className="text-emerald-400" /> {item.readCount} Confirmed Read
-              </span>
+              <div className="flex items-center gap-6 pt-3 border-t border-[#1e293b] text-xs text-slate-400">
+                <span className="flex items-center gap-1.5">
+                  <Eye size={14} className="text-indigo-400" /> {item.seenCount} Seen
+                </span>
+                <span className="flex items-center gap-1.5">
+                  <CheckCircle2 size={14} className="text-emerald-400" /> {item.readCount} Confirmed Read
+                </span>
+              </div>
             </div>
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
+      )}
     </div>
   )
 }

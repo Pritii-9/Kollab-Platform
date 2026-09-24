@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react'
-import { MOCK_MILESTONES } from '@/utils/mockData'
-import { CheckCircle2, Clock, Lock, Trophy, Calendar, ArrowRight, Target, Flame } from 'lucide-react'
+import { CheckCircle2, Lock, Trophy, Flame } from 'lucide-react'
 
 export default function Milestones() {
   const [activeView, setActiveView] = useState<'timeline' | 'grid'>('timeline')

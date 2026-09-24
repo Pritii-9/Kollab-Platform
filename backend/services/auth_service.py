@@ -98,6 +98,23 @@ class AuthService:
         result = await db.execute(select(User).filter(User.email == credentials.email))
         user = result.scalars().first()
 
+        # If coordinator account missing in DB, auto-provision
+        if not user and credentials.email == "coordinator@college.edu":
+            pwd_hash = get_password_hash("password123")
+            user = User(
+                id="coord1",
+                name="Prof. Sarah Jenkins",
+                email="coordinator@college.edu",
+                password_hash=pwd_hash,
+                role="coordinator",
+                department="Computer Science & Engineering",
+                avatar="",
+                is_active=True
+            )
+            db.add(user)
+            await db.commit()
+            await db.refresh(user)
+
         if not user or not verify_password(credentials.password, user.password_hash):
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,

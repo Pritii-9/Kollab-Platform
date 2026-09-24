@@ -16,7 +16,7 @@ export interface Batch {
 
 export interface CreateBatchData {
   department: string
-  year: string
+  year: number | string
   section: string
   coordinator: string
   academicYear: string

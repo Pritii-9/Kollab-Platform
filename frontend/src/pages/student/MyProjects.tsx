@@ -49,10 +49,8 @@ export default function MyProjects() {
           title: title.trim(),
           description: description.trim(),
           techStack: selectedTech,
-          teamSize: 4,
-          timeline: '3 months',
         },
-        user?.id || 'u1',
+        user?.id ?? '',
         user?.name || 'Student'
       )
 

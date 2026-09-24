@@ -10,6 +10,13 @@ export interface User {
   year?: number
   batch?: string
   rollNumber?: string
+  trustScore?: number
+  skills?: any[]
+  placementStatus?: string
+  cgpa?: number
+  bio?: string
+  github?: string
+  linkedin?: string
   token: string
 }
 

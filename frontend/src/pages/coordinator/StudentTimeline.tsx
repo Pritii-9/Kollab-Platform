@@ -1,13 +1,15 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { studentsApi } from '@/api/students.api'
+import { testsApi } from '@/api/tests.api'
 import type { Student, TimelineEvent } from '@/types/student.types'
+import type { TestAttemptRecord } from '@/types/test.types'
 import TrustScoreGauge from '@/components/charts/TrustScoreGauge'
 import PlacementStatusBadge from '@/components/student/PlacementStatusBadge'
 import SkillBadge from '@/components/student/SkillBadge'
 import AIInsightCard from '@/components/dashboard/AIInsightCard'
 import EmptyState from '@/components/shared/EmptyState'
-import { Bell, Download, ArrowLeft, CheckCircle2, Clock, Award, FolderKanban, Loader2, AlertCircle } from 'lucide-react'
+import { Bell, Download, ArrowLeft, CheckCircle2, Clock, Award, FolderKanban, Loader2, AlertCircle, AlertTriangle } from 'lucide-react'
 import toast from 'react-hot-toast'
 
 export default function StudentTimeline() {
@@ -16,6 +18,7 @@ export default function StudentTimeline() {
   
   const [student, setStudent] = useState<Student | null>(null)
   const [timeline, setTimeline] = useState<TimelineEvent[]>([])
+  const [testAttempts, setTestAttempts] = useState<TestAttemptRecord[]>([])
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState<'timeline' | 'skills' | 'projects' | 'tests'>('timeline')
 
@@ -29,11 +32,14 @@ export default function StudentTimeline() {
     setLoading(true)
     Promise.all([
       studentsApi.getStudentById(id).catch(() => null),
-      studentsApi.getTimeline(id).catch(() => [])
-    ]).then(([studentData, timelineData]) => {
+      studentsApi.getTimeline(id).catch(() => []),
+      testsApi.getTestAttempts().catch(() => [])
+    ]).then(([studentData, timelineData, allAttempts]) => {
       if (isMounted) {
         setStudent(studentData)
         setTimeline(timelineData || [])
+        const studentAttempts = (allAttempts || []).filter(a => a.studentId === id)
+        setTestAttempts(studentAttempts)
         setLoading(false)
         if (studentData) {
           document.title = `${studentData.name} — Kollab`
@@ -214,7 +220,35 @@ export default function StudentTimeline() {
           {activeTab === 'tests' && (
             <div className="p-6 rounded-2xl bg-[#0f172a] border border-[#1e293b] space-y-4">
               <h3 className="text-base font-bold text-white mb-4">Proctored Test Results</h3>
-              <p className="text-slate-400 text-xs text-center py-6">No proctored test assessments completed yet.</p>
+              {testAttempts.length > 0 ? (
+                <div className="space-y-3">
+                  {testAttempts.map((att) => (
+                    <div key={att.id} className="p-4 rounded-xl bg-[#080d18] border border-[#1e293b] flex items-center justify-between">
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-2">
+                          <h4 className="font-bold text-white text-sm">{att.testTitle}</h4>
+                          <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${att.passed ? 'bg-emerald-500/10 text-emerald-400' : 'bg-rose-500/10 text-rose-400'}`}>
+                            {att.passed ? 'PASSED' : 'RETAKE REQUIRED'}
+                          </span>
+                        </div>
+                        <p className="text-xs text-slate-400">
+                          Skill: <span className="text-indigo-400 font-semibold">{att.skillName}</span> · Submitted {att.completedAt}
+                        </p>
+                      </div>
+                      <div className="text-right space-y-1">
+                        <span className="font-extrabold text-sm text-white">{att.score} / {att.total} ({att.percentage}%)</span>
+                        {att.tabSwitches > 0 && (
+                          <span className="text-[10px] text-amber-400 font-semibold block flex items-center justify-end gap-1">
+                            <AlertTriangle size={12} /> {att.tabSwitches} Tab Switch(es)
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-slate-400 text-xs text-center py-6">No proctored test assessments completed yet for this student.</p>
+              )}
             </div>
           )}
         </div>

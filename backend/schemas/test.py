@@ -98,3 +98,26 @@ class TestResultResponse(BaseModel):
     topicBreakdown: List[TopicScore] = []
     questionResults: List[QuestionResult] = []
     completedAt: str = ""
+
+class TestAttemptResponse(BaseModel):
+    id: str
+    testId: str
+    studentId: str
+    studentName: str
+    rollNumber: Optional[str] = None
+    department: Optional[str] = None
+    batch: Optional[str] = None
+    testTitle: str
+    skillName: str
+    score: int
+    total: int
+    percentage: float
+    timeTaken: int
+    tabSwitches: int
+    passed: bool
+    badgeEarned: Optional[str] = None
+    completedAt: str = ""
+
+    class Config:
+        from_attributes = True
+

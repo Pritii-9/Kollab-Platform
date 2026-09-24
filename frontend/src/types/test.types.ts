@@ -78,3 +78,24 @@ export interface QuestionResult {
   isCorrect: boolean
   skipped: boolean
 }
+
+export interface TestAttemptRecord {
+  id: string
+  testId: string
+  studentId: string
+  studentName: string
+  rollNumber?: string
+  department?: string
+  batch?: string
+  testTitle: string
+  skillName: string
+  score: number
+  total: number
+  percentage: number
+  timeTaken: number
+  tabSwitches: number
+  passed: boolean
+  badgeEarned?: string
+  completedAt: string
+}
+

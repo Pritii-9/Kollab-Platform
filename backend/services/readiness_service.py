@@ -41,7 +41,7 @@ class ReadinessService:
         skill_component = (avg_skill_score / 100.0) * 30.0
 
         # 2. Proctored Test Score Component (Weight: 30%)
-        test_attempts_query = select(TestAttempt).filter(TestAttempt.user_id == student_id)
+        test_attempts_query = select(TestAttempt).filter(TestAttempt.student_id == student_id)
         test_res = await session.execute(test_attempts_query)
         attempts = test_res.scalars().all()
 

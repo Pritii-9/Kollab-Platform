@@ -17,6 +17,7 @@ from schemas.test import (
     AntiCheatRules,
     TestSubmitRequest,
     TestResultResponse,
+    TestAttemptResponse,
     TopicScore,
     QuestionResult
 )
@@ -45,50 +46,68 @@ class TestService:
         await db.commit()
         await db.refresh(test_obj)
 
-        # Generate standard questions for this skill
-        q1 = Question(
-            test_id=test_obj.id,
-            text=f"What is the recommended design pattern for managing asynchronous operations in {data.skill_name}?",
-            topic="Architecture & Async",
-            difficulty=data.difficulty,
-            explanation=f"Best practice in modern {data.skill_name} leverages standard async primitives and error-boundary containment."
-        )
-        db.add(q1)
-        await db.flush()
-
-        opts = [
-            QuestionOption(question_id=q1.id, text="Direct synchronous blocking calls", is_correct=False),
-            QuestionOption(question_id=q1.id, text="Async/Await with non-blocking error handling", is_correct=True),
-            QuestionOption(question_id=q1.id, text="Continuous busy-wait loops", is_correct=False),
-            QuestionOption(question_id=q1.id, text="Global immutable lock mechanism", is_correct=False),
+        # Generate skill-specific questions
+        questions_data = [
+            {
+                "text": f"What is the recommended design pattern for managing asynchronous operations in {data.skill_name}?",
+                "topic": "Architecture & Async",
+                "opts": [
+                    ("Direct synchronous blocking calls", False),
+                    ("Async/Await with non-blocking error handling", True),
+                    ("Continuous busy-wait loops", False),
+                    ("Global immutable lock mechanism", False),
+                ]
+            },
+            {
+                "text": f"How are state mutations properly scoped and propagated in {data.skill_name} applications?",
+                "topic": "State Management",
+                "opts": [
+                    ("Unidirectional data flow with pure reducers/handlers", True),
+                    ("Direct memory pointer mutation across threads", False),
+                    ("Shared global mutable singleton objects without synchronizers", False),
+                    ("Hardcoded static class variables", False),
+                ]
+            },
+            {
+                "text": f"Which optimization technique prevents unnecessary performance bottlenecks in {data.skill_name}?",
+                "topic": "Performance & Optimization",
+                "opts": [
+                    ("Memoization and efficient data indexing", True),
+                    ("Disabling error boundary handlers", False),
+                    ("Allocating unbounded buffer memory", False),
+                    ("Polling APIs every 50 milliseconds", False),
+                ]
+            },
+            {
+                "text": f"What is the primary security requirement when handling client inputs in {data.skill_name} services?",
+                "topic": "Security & Validation",
+                "opts": [
+                    ("Strict input sanitization and schema validation", True),
+                    ("Trusting raw unvalidated payload parameters", False),
+                    ("Storing cleartext credentials in local state", False),
+                    ("Bypassing CORS headers for cross-origin requests", False),
+                ]
+            }
         ]
-        for opt in opts:
-            db.add(opt)
 
-        q2 = Question(
-            test_id=test_obj.id,
-            text=f"How are state mutations properly scoped and propagated in {data.skill_name} applications?",
-            topic="State Management",
-            difficulty=data.difficulty,
-            explanation=f"State management in {data.skill_name} relies on predictable unidirectional data flow and immutable updates."
-        )
-        db.add(q2)
-        await db.flush()
-
-        opts2 = [
-            QuestionOption(question_id=q2.id, text="Unidirectional data flow with pure reducers/handlers", is_correct=True),
-            QuestionOption(question_id=q2.id, text="Direct memory pointer mutation across threads", is_correct=False),
-            QuestionOption(question_id=q2.id, text="Shared global mutable singleton objects without synchronizers", is_correct=False),
-            QuestionOption(question_id=q2.id, text="Hardcoded static class variables", is_correct=False),
-        ]
-        for opt in opts2:
-            db.add(opt)
+        for qd in questions_data:
+            q = Question(
+                test_id=test_obj.id,
+                text=qd["text"],
+                topic=qd["topic"],
+                difficulty=data.difficulty,
+                explanation=f"Core principle of {data.skill_name} production architectures."
+            )
+            db.add(q)
+            await db.flush()
+            for opt_text, is_corr in qd["opts"]:
+                db.add(QuestionOption(question_id=q.id, text=opt_text, is_correct=is_corr))
 
         await db.commit()
-        return await TestService.get_test_by_id(test_obj.id, db)
+        return await TestService.get_test_by_id(test_obj.id, db, include_answers=True)
 
     @staticmethod
-    async def get_test_by_id(test_id: str, db: AsyncSession) -> TestResponse:
+    async def get_test_by_id(test_id: str, db: AsyncSession, include_answers: bool = False) -> TestResponse:
         result = await db.execute(
             select(Test)
             .filter(Test.id == test_id)
@@ -106,7 +125,7 @@ class TestService:
                 QuestionOptionSchema(
                     id=opt.id,
                     text=opt.text,
-                    isCorrect=opt.is_correct
+                    isCorrect=opt.is_correct if include_answers else None
                 ) for opt in q.options
             ]
             questions_list.append(QuestionSchema(
@@ -115,7 +134,7 @@ class TestService:
                 options=opts,
                 topic=q.topic,
                 difficulty=q.difficulty,
-                explanation=q.explanation
+                explanation=q.explanation if include_answers else None
             ))
 
         return TestResponse(
@@ -140,6 +159,7 @@ class TestService:
             createdBy=t.created_by,
             createdAt=t.created_at.strftime("%Y-%m-%d") if t.created_at else ""
         )
+
 
     @staticmethod
     async def list_tests(db: AsyncSession) -> List[TestResponse]:
@@ -331,3 +351,87 @@ class TestService:
             questionResults=question_results,
             completedAt=completed_at
         )
+
+    @staticmethod
+    async def get_all_attempts(db: AsyncSession, test_id: Optional[str] = None) -> List[TestAttemptResponse]:
+        query = select(TestAttempt).options(selectinload(TestAttempt.student))
+        if test_id:
+            query = query.filter(TestAttempt.test_id == test_id)
+        
+        result = await db.execute(query.order_by(TestAttempt.created_at.desc()))
+        attempts = result.scalars().all()
+        
+        responses = []
+        for att in attempts:
+            student_name = att.student.name if att.student else "Student"
+            roll_number = att.student.roll_number if att.student else "N/A"
+            department = att.student.department if att.student else "CS"
+            batch = att.student.batch if att.student else "Batch A"
+            
+            responses.append(TestAttemptResponse(
+                id=att.id,
+                testId=att.test_id,
+                studentId=att.student_id,
+                studentName=student_name,
+                rollNumber=roll_number,
+                department=department,
+                batch=batch,
+                testTitle=att.test_title or "Proctored Skill Test",
+                skillName=att.skill_name or "General",
+                score=att.score,
+                total=att.total,
+                percentage=att.percentage,
+                timeTaken=att.time_taken,
+                tabSwitches=att.tab_switches,
+                passed=att.passed,
+                badgeEarned=att.badge_earned,
+                completedAt=att.completed_at or att.created_at.strftime("%Y-%m-%d %H:%M") if att.created_at else ""
+            ))
+        return responses
+
+    @staticmethod
+    async def get_student_attempts(student_id: str, db: AsyncSession) -> List[TestResultResponse]:
+        result = await db.execute(
+            select(TestAttempt)
+            .filter(TestAttempt.student_id == student_id)
+            .order_by(TestAttempt.created_at.desc())
+        )
+        attempts = result.scalars().all()
+        responses = []
+        for att in attempts:
+            tb = []
+            qr = []
+            try:
+                if att.topic_breakdown_json:
+                    tb_data = json.loads(att.topic_breakdown_json)
+                    tb = [TopicScore(**item) for item in tb_data]
+            except Exception:
+                pass
+
+            try:
+                if att.question_results_json:
+                    qr_data = json.loads(att.question_results_json)
+                    qr = [QuestionResult(**item) for item in qr_data]
+            except Exception:
+                pass
+
+            responses.append(TestResultResponse(
+                testId=att.test_id,
+                testTitle=att.test_title or "Assessment",
+                skillName=att.skill_name or "General",
+                score=att.score,
+                total=att.total,
+                percentage=att.percentage,
+                correct=att.correct,
+                wrong=att.wrong,
+                skipped=att.skipped,
+                timeTaken=att.time_taken,
+                tabSwitches=att.tab_switches,
+                passed=att.passed,
+                badgeEarned=att.badge_earned,
+                topicBreakdown=tb,
+                questionResults=qr,
+                completedAt=att.completed_at or (att.created_at.strftime("%Y-%m-%d %H:%M") if att.created_at else "")
+            ))
+        return responses
+

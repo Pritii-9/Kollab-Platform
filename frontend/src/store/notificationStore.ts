@@ -1,5 +1,4 @@
 import { create } from 'zustand'
-import { MOCK_NOTIFICATIONS } from '../utils/mockData'
 
 export type NotificationType = 'test' | 'project' | 'team' | 'system'
 

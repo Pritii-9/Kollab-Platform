@@ -1,38 +1,49 @@
 import { useState, useEffect } from 'react'
 import StatCard from '@/components/dashboard/StatCard'
-import { MOCK_BATCH_REPORTS } from '@/utils/mockData'
-import { Download, Users, Award, GraduationCap, CheckCircle, TrendingUp, FileText, Building2 } from 'lucide-react'
+import { Download, Users, Award, GraduationCap, CheckCircle, FileText } from 'lucide-react'
 import ReadinessBarChart from '@/components/charts/ReadinessBarChart'
 import CustomSelect from '@/components/shared/CustomSelect'
+import { batchesApi } from '@/api/batches.api'
+import type { Batch } from '@/types/batch.types'
 import toast from 'react-hot-toast'
-
-const batchChartData = [
-  { name: 'CSE Y1 A', value: 15 },
-  { name: 'CSE Y1 B', value: 12 },
-  { name: 'CSE Y2 A', value: 42 },
-  { name: 'CSE Y2 B', value: 35 },
-  { name: 'CSE Y3 A', value: 68 },
-  { name: 'CSE Y4 A', value: 89 },
-]
 
 export default function Reports() {
   const [activeTab, setActiveTab] = useState<'batch' | 'student' | 'placement'>('batch')
   const [selectedYear, setSelectedYear] = useState('all')
-  const [selectedBatch, setSelectedBatch] = useState('all')
+  const [batches, setBatches] = useState<Batch[]>([])
+  const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     document.title = 'Reports — Kollab'
+    loadReportData()
   }, [])
+
+  const loadReportData = async () => {
+    setLoading(true)
+    try {
+      const data = await batchesApi.listBatches()
+      setBatches(data || [])
+    } catch (err) {
+      console.error('Failed to load batch reports:', err)
+      setBatches([])
+    } finally {
+      setLoading(false)
+    }
+  }
 
   const handleExportPDF = (batchName: string) => {
     toast.success(`Exporting PDF placement report for ${batchName}...`)
   }
 
-  const filteredReports = MOCK_BATCH_REPORTS.filter((r) => {
-    const matchYear = selectedYear === 'all' || String(r.year ?? '') === selectedYear
-    const matchBatch = selectedBatch === 'all' || r.batchName.includes(selectedBatch)
-    return matchYear && matchBatch
+  const filteredBatches = batches.filter((b) => {
+    const matchYear = selectedYear === 'all' || String(b.year) === selectedYear
+    return matchYear
   })
+
+  const chartData = filteredBatches.map((b) => ({
+    name: b.name,
+    value: b.readinessPercent || 0
+  }))
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -52,41 +63,47 @@ export default function Reports() {
 
       {/* 4 Stat Summary Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard title="Total Batches" value={6} subtitle="Academic year 2025-2026" icon={<Users size={20} />} trend={{ value: 1, isPositive: true }} />
+        <StatCard title="Total Batches" value={batches.length} subtitle="Active academic cohorts" icon={<Users size={20} />} />
         <StatCard
           title="Avg Readiness"
-          value="72%"
+          value={
+            batches.filter((b) => b.totalStudents > 0).length > 0
+              ? `${Math.round(
+                  batches.filter((b) => b.totalStudents > 0).reduce((a, b) => a + (b.readinessPercent || 0), 0) /
+                    batches.filter((b) => b.totalStudents > 0).length
+                )}%`
+              : '0%'
+          }
           subtitle="Cohort benchmark score"
           icon={<CheckCircle size={20} />}
           iconBg="bg-emerald-500/10 text-emerald-400 border border-emerald-500/20"
-          trend={{ value: 4, isPositive: true }}
         />
         <StatCard
-          title="Placement Rate"
-          value="37%"
-          subtitle="89 out of 240 hired"
+          title="Placement Eligible"
+          value={batches.reduce((a, b) => a + (b.placementReady || 0), 0)}
+          subtitle="Students meeting criteria"
           icon={<GraduationCap size={20} />}
           iconBg="bg-violet-500/10 text-violet-400 border border-violet-500/20"
-          trend={{ value: 8, isPositive: true }}
         />
         <StatCard
-          title="Verified Skills Avg"
-          value="68%"
-          subtitle="Students with ≥3 badges"
+          title="Verified Skills"
+          value={batches.reduce((a, b) => a + (b.skillVerified || 0), 0)}
+          subtitle="Total verified skill badges"
           icon={<Award size={20} />}
           iconBg="bg-amber-500/10 text-amber-400 border border-amber-500/20"
-          trend={{ value: 3, isPositive: true }}
         />
       </div>
 
       {/* Readiness Bar Chart */}
-      <div className="p-6 rounded-2xl bg-[#0f172a] border border-[#1e293b] shadow-xl space-y-4">
-        <div>
-          <h3 className="text-base font-bold text-white">Batch-wise Cohort Readiness (%)</h3>
-          <p className="text-xs text-slate-400 mt-0.5">Visual breakdown by batch across all years</p>
+      {chartData.length > 0 && (
+        <div className="p-6 rounded-2xl bg-[#0f172a] border border-[#1e293b] shadow-xl space-y-4">
+          <div>
+            <h3 className="text-base font-bold text-white">Batch-wise Cohort Readiness (%)</h3>
+            <p className="text-xs text-slate-400 mt-0.5">Visual breakdown by batch across all years</p>
+          </div>
+          <ReadinessBarChart data={chartData} height={220} />
         </div>
-        <ReadinessBarChart data={batchChartData} height={220} />
-      </div>
+      )}
 
       {/* Tab Switcher & Filter Row */}
       <div className="p-4 rounded-2xl bg-[#0f172a] border border-[#1e293b] flex flex-col md:flex-row items-center justify-between gap-4">
@@ -110,17 +127,10 @@ export default function Reports() {
             onChange={setSelectedYear}
             options={[
               { value: 'all', label: 'All Years' },
+              { value: '1', label: 'Year 1' },
+              { value: '2', label: 'Year 2' },
               { value: '3', label: 'Year 3' },
               { value: '4', label: 'Year 4' }
-            ]}
-          />
-          <CustomSelect
-            value={selectedBatch}
-            onChange={setSelectedBatch}
-            options={[
-              { value: 'all', label: 'All Batches' },
-              { value: 'Batch A', label: 'Batch A' },
-              { value: 'Batch B', label: 'Batch B' }
             ]}
           />
         </div>
@@ -129,91 +139,73 @@ export default function Reports() {
       {/* Batch Reports Table */}
       {activeTab === 'batch' && (
         <div className="overflow-x-auto rounded-2xl border border-[#1e293b] bg-[#0f172a]">
-          <table className="w-full text-left border-collapse text-xs">
-            <thead>
-              <tr className="border-b border-[#1e293b] text-slate-400 font-semibold bg-[#080d18]/50">
-                <th className="py-3.5 px-4">Batch Name</th>
-                <th className="py-3.5 px-4">Department</th>
-                <th className="py-3.5 px-4">Students</th>
-                <th className="py-3.5 px-4">Verified %</th>
-                <th className="py-3.5 px-4">Avg CGPA</th>
-                <th className="py-3.5 px-4">Readiness</th>
-                <th className="py-3.5 px-4">Placed Count</th>
-                <th className="py-3.5 px-4 text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-[#1e293b]">
-              {filteredReports.map((rpt) => (
-                <tr key={rpt.id} className="hover:bg-[#152035] transition-colors">
-                  <td className="py-3.5 px-4 font-bold text-white">{rpt.batchName}</td>
-                  <td className="py-3.5 px-4 text-slate-400">{rpt.department}</td>
-                  <td className="py-3.5 px-4 text-slate-300">{rpt.totalStudents}</td>
-                  <td className="py-3.5 px-4 font-semibold text-indigo-400">{rpt.skillVerified} verified</td>
-                  <td className="py-3.5 px-4 font-bold text-emerald-400">{rpt.avgCGPA}</td>
-                  <td className="py-3.5 px-4 w-32">
-                    <div className="flex items-center gap-2">
-                      <div className="flex-1 h-2 rounded-full bg-slate-800 overflow-hidden">
-                        <div className="h-full rounded-full bg-emerald-500" style={{ width: `${rpt.readinessPercent}%` }} />
-                      </div>
-                      <span className="font-semibold text-slate-200">{rpt.readinessPercent}%</span>
-                    </div>
-                  </td>
-                  <td className="py-3.5 px-4">
-                    <span className="font-bold text-white">
-                      {rpt.placedCount} / {rpt.totalStudents}
-                    </span>
-                  </td>
-                  <td className="py-3.5 px-4 text-right">
-                    <div className="flex items-center justify-end gap-2">
-                      <button
-                        onClick={() => handleExportPDF(rpt.batchName)}
-                        className="px-2.5 py-1 rounded-lg bg-indigo-600/10 hover:bg-indigo-600/20 text-indigo-400 text-xs font-semibold border border-indigo-500/20"
-                      >
-                        PDF
-                      </button>
-                      <button
-                        onClick={() => toast.success(`Exporting CSV for ${rpt.batchName}...`)}
-                        className="px-2.5 py-1 rounded-lg bg-[#080d18] border border-[#1e293b] text-slate-300 hover:text-white"
-                      >
-                        CSV
-                      </button>
-                    </div>
-                  </td>
+          {loading ? (
+            <div className="py-12 text-center text-slate-400 text-xs">Loading batch reports...</div>
+          ) : filteredBatches.length === 0 ? (
+            <div className="py-12 text-center text-slate-400 text-xs">No active batches available for reporting.</div>
+          ) : (
+            <table className="w-full text-left border-collapse text-xs">
+              <thead>
+                <tr className="border-b border-[#1e293b] text-slate-400 font-semibold bg-[#080d18]/50">
+                  <th className="py-3.5 px-4">Batch Name</th>
+                  <th className="py-3.5 px-4">Department</th>
+                  <th className="py-3.5 px-4">Students</th>
+                  <th className="py-3.5 px-4">Verified Skills</th>
+                  <th className="py-3.5 px-4">Readiness</th>
+                  <th className="py-3.5 px-4">Placement Ready</th>
+                  <th className="py-3.5 px-4 text-right">Actions</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody className="divide-y divide-[#1e293b]">
+                {filteredBatches.map((b) => (
+                  <tr key={b.id} className="hover:bg-[#152035] transition-colors">
+                    <td className="py-3.5 px-4 font-bold text-white">{b.name}</td>
+                    <td className="py-3.5 px-4 text-slate-400">{b.department}</td>
+                    <td className="py-3.5 px-4 text-slate-300">{b.totalStudents}</td>
+                    <td className="py-3.5 px-4 font-semibold text-indigo-400">{b.skillVerified} verified</td>
+                    <td className="py-3.5 px-4 w-32">
+                      <div className="flex items-center gap-2">
+                        <div className="flex-1 h-2 rounded-full bg-slate-800 overflow-hidden">
+                          <div className="h-full rounded-full bg-emerald-500" style={{ width: `${b.readinessPercent}%` }} />
+                        </div>
+                        <span className="font-semibold text-slate-200">{b.readinessPercent}%</span>
+                      </div>
+                    </td>
+                    <td className="py-3.5 px-4">
+                      <span className="font-bold text-white">{b.placementReady}</span>
+                    </td>
+                    <td className="py-3.5 px-4 text-right">
+                      <div className="flex items-center justify-end gap-2">
+                        <button
+                          onClick={() => handleExportPDF(b.name)}
+                          className="px-2.5 py-1 rounded-lg bg-indigo-600/10 hover:bg-indigo-600/20 text-indigo-400 text-xs font-semibold border border-indigo-500/20"
+                        >
+                          PDF
+                        </button>
+                        <button
+                          onClick={() => toast.success(`Exporting CSV for ${b.name}...`)}
+                          className="px-2.5 py-1 rounded-lg bg-[#080d18] border border-[#1e293b] text-slate-300 hover:text-white"
+                        >
+                          CSV
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
         </div>
       )}
 
       {/* Placement Tab */}
       {activeTab === 'placement' && (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {[
-            { company: 'Google', hired: 3, role: 'SWE', batch: 'CSE Year 4' },
-            { company: 'Amazon', hired: 7, role: 'SDE-1', batch: 'CSE Year 4' },
-            { company: 'Microsoft', hired: 5, role: 'Software Engineer', batch: 'CSE Year 4' },
-            { company: 'Infosys', hired: 22, role: 'Systems Engineer', batch: 'Multiple' },
-            { company: 'Wipro', hired: 18, role: 'Project Engineer', batch: 'Multiple' },
-            { company: 'TCS', hired: 34, role: 'Systems Engineer', batch: 'Multiple' },
-          ].map((c, idx) => (
-            <div key={idx} className="p-5 rounded-2xl bg-[#0f172a] border border-[#1e293b] shadow-xl space-y-3 hover:border-slate-700 transition-all">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-indigo-600/10 text-indigo-400 border border-indigo-500/20 flex items-center justify-center font-extrabold text-sm">
-                  {c.company[0]}
-                </div>
-                <div>
-                  <h4 className="font-bold text-white">{c.company}</h4>
-                  <span className="text-xs text-slate-400">{c.role}</span>
-                </div>
-              </div>
-              <div className="flex items-center justify-between pt-2 border-t border-[#1e293b]">
-                <span className="text-xs text-slate-400">Hired</span>
-                <span className="text-lg font-extrabold text-emerald-400">{c.hired}</span>
-              </div>
-              <span className="inline-block text-[10px] bg-slate-800 text-slate-400 px-2 py-0.5 rounded-full">{c.batch}</span>
-            </div>
-          ))}
+        <div className="p-12 rounded-2xl bg-[#0f172a] border border-[#1e293b] text-center space-y-3">
+          <GraduationCap size={36} className="mx-auto text-slate-600" />
+          <h3 className="font-bold text-white text-sm">Placement Analytics</h3>
+          <p className="text-xs text-slate-400 max-w-sm mx-auto">
+            Live placement statistics will populate automatically as campus placement drives complete and status updates occur.
+          </p>
         </div>
       )}
 

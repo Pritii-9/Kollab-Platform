@@ -33,8 +33,8 @@ export default function Login() {
   const [regName, setRegName] = useState('')
   const [regEmail, setRegEmail] = useState('')
   const [regDept, setRegDept] = useState(DEPARTMENTS[0])
-  const [regYear, setRegYear] = useState('3')
-  const [regBatch, setRegBatch] = useState('Batch A')
+  const [regYear, setRegYear] = useState('4')
+  const [regBatch, setRegBatch] = useState('CSE Batch B')
   const [regRoll, setRegRoll] = useState('')
 
   // Step 2 OTP & Password
@@ -143,16 +143,16 @@ export default function Login() {
 
         <div className="relative z-10 pt-10 border-t border-[#1e293b] mt-10 grid grid-cols-3 gap-4 text-center">
           <div>
-            <h4 className="text-xl font-extrabold text-white">2,400+</h4>
-            <span className="text-[11px] text-slate-500">Active Students</span>
+            <h4 className="text-xl font-extrabold text-white">CSE Dept</h4>
+            <span className="text-[11px] text-slate-500">Batches A, B, C</span>
           </div>
           <div>
-            <h4 className="text-xl font-extrabold text-white">18</h4>
-            <span className="text-[11px] text-slate-500">Depts Onboarded</span>
+            <h4 className="text-xl font-extrabold text-white">Year 4</h4>
+            <span className="text-[11px] text-slate-500">Academic Cohort</span>
           </div>
           <div>
-            <h4 className="text-xl font-extrabold text-emerald-400">94%</h4>
-            <span className="text-[11px] text-slate-500">Placement Rate</span>
+            <h4 className="text-xl font-extrabold text-emerald-400">92%</h4>
+            <span className="text-[11px] text-slate-500">Placement Readiness</span>
           </div>
         </div>
       </div>
@@ -199,7 +199,7 @@ export default function Login() {
                   required
                   value={loginEmail}
                   onChange={(e) => setLoginEmail(e.target.value)}
-                  placeholder="student@college.edu or coordinator@college.edu"
+                  placeholder="priti@college.edu or coordinator@college.edu"
                   className="w-full px-4 py-2.5 rounded-xl bg-[#0f172a] border border-[#1e293b] text-slate-100 text-sm focus:outline-none focus:border-indigo-500"
                 />
               </div>
@@ -226,7 +226,7 @@ export default function Login() {
               </div>
 
               <div className="flex items-center justify-between text-xs">
-                <span className="text-slate-400">Hint: Type 'coord' in email for Coordinator role</span>
+                <span className="text-slate-400">Coordinator: coordinator@college.edu / password123</span>
                 <a href="#" className="text-indigo-400 hover:underline">Forgot?</a>
               </div>
 
@@ -256,12 +256,12 @@ export default function Login() {
               <button
                 type="button"
                 onClick={() => {
-                  setLoginEmail('aanya@college.edu')
-                  setLoginPassword('password')
+                  setLoginEmail('priti@college.edu')
+                  setLoginPassword('password123')
                 }}
                 className="w-full py-2.5 rounded-xl bg-[#0f172a] border border-[#1e293b] hover:border-slate-600 text-slate-300 font-medium text-xs flex items-center justify-center gap-2 transition-colors"
               >
-                <Code size={16} /> Quick Student Demo Sign In
+                <Code size={16} /> Quick Sign In as Priti Jadhav (CSE Batch B)
               </button>
             </form>
           ) : (
@@ -274,7 +274,7 @@ export default function Login() {
                       type="text"
                       value={regName}
                       onChange={(e) => setRegName(e.target.value)}
-                      placeholder="Aanya Sharma"
+                      placeholder="Priti Jadhav"
                       className="w-full px-3.5 py-2 rounded-xl bg-[#0f172a] border border-[#1e293b] text-sm text-slate-100"
                     />
                   </div>
@@ -284,7 +284,7 @@ export default function Login() {
                       type="email"
                       value={regEmail}
                       onChange={(e) => setRegEmail(e.target.value)}
-                      placeholder="student@college.edu"
+                      placeholder="priti@college.edu"
                       className="w-full px-3.5 py-2 rounded-xl bg-[#0f172a] border border-[#1e293b] text-sm text-slate-100"
                     />
                   </div>
@@ -320,9 +320,9 @@ export default function Login() {
                         value={regBatch}
                         onChange={setRegBatch}
                         options={[
-                          { value: 'Batch A', label: 'Batch A' },
-                          { value: 'Batch B', label: 'Batch B' },
-                          { value: 'Batch C', label: 'Batch C' }
+                          { value: 'CSE Batch A', label: 'CSE Batch A' },
+                          { value: 'CSE Batch B', label: 'CSE Batch B' },
+                          { value: 'CSE Batch C', label: 'CSE Batch C' }
                         ]}
                         className="w-full"
                       />
@@ -333,7 +333,7 @@ export default function Login() {
                         type="text"
                         value={regRoll}
                         onChange={(e) => setRegRoll(e.target.value)}
-                        placeholder="2023-CS-042"
+                        placeholder="CSE21001"
                         className="w-full px-3.5 py-2 rounded-xl bg-[#0f172a] border border-[#1e293b] text-sm text-slate-100"
                       />
                     </div>

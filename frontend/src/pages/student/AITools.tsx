@@ -63,7 +63,7 @@ export default function AITools() {
 
   const handleAnalyzeSkillGap = async () => {
     setIsAnalyzingGap(true)
-    const userSkills = user?.skills?.map((s) => s.name) || ['React', 'Node.js', 'JavaScript']
+    const userSkills = user?.skills?.map((s: any) => typeof s === 'string' ? s : s.name) || ['React', 'Node.js', 'JavaScript']
     try {
       const result = await aiApi.analyzeSkillGap(userSkills, role)
       setSkillGapResult(result)
@@ -82,7 +82,7 @@ export default function AITools() {
 
   const handleFindRoleMatches = async () => {
     setIsFindingRoles(true)
-    const userSkills = user?.skills?.map((s) => s.name) || ['React', 'Node.js', 'Python']
+    const userSkills = user?.skills?.map((s: any) => typeof s === 'string' ? s : s.name) || ['React', 'Node.js', 'Python']
     try {
       const res = await aiApi.recommendRoles(userSkills)
       if (res?.roles) {

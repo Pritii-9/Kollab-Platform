@@ -1,19 +1,37 @@
 import { useEffect } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
-import { MOCK_TEST_RESULT } from '@/utils/mockData'
-import { CheckCircle2, XCircle, Award, ArrowRight, ShieldCheck } from 'lucide-react'
+import { CheckCircle2, XCircle, Award, ArrowRight, ShieldCheck, AlertCircle } from 'lucide-react'
 import type { TestResult } from '@/types/test.types'
 
 export default function TestResult() {
   const navigate = useNavigate()
   const location = useLocation()
   
-  // Use the result passed from TakeTest.tsx, fallback to mock only if accessed directly without taking test
-  const result = (location.state?.result as TestResult) || MOCK_TEST_RESULT
+  const result = location.state?.result as TestResult | undefined
 
   useEffect(() => {
     document.title = 'Test Results — Kollab'
   }, [])
+
+  if (!result) {
+    return (
+      <div className="min-h-screen bg-[#0a0f1e] text-slate-100 p-6 flex flex-col items-center justify-center">
+        <div className="max-w-md w-full bg-[#0f172a] border border-[#1e293b] rounded-3xl p-8 shadow-2xl space-y-4 text-center">
+          <AlertCircle size={40} className="mx-auto text-amber-400" />
+          <h2 className="text-xl font-bold text-white">No Recent Test Result Found</h2>
+          <p className="text-xs text-slate-400">
+            Please complete a proctored assessment to view your score and verified skill badge.
+          </p>
+          <button
+            onClick={() => navigate('/student/dashboard')}
+            className="w-full py-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs shadow-lg shadow-indigo-600/20"
+          >
+            Back to Student Dashboard
+          </button>
+        </div>
+      </div>
+    )
+  }
 
   const passed = result.percentage >= 70
 
@@ -73,20 +91,22 @@ export default function TestResult() {
         </div>
 
         {/* Topic Breakdown */}
-        <div className="space-y-3 text-left">
-          <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider">Topic Performance Breakdown</h4>
-          {result.topicBreakdown.map((tb, idx) => (
-            <div key={idx} className="space-y-1 text-xs">
-              <div className="flex justify-between">
-                <span className="text-slate-300 font-medium">{tb.topic}</span>
-                <span className="font-bold text-white">{tb.percentage}%</span>
+        {result.topicBreakdown && result.topicBreakdown.length > 0 && (
+          <div className="space-y-3 text-left">
+            <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider">Topic Performance Breakdown</h4>
+            {result.topicBreakdown.map((tb, idx) => (
+              <div key={idx} className="space-y-1 text-xs">
+                <div className="flex justify-between">
+                  <span className="text-slate-300 font-medium">{tb.topic}</span>
+                  <span className="font-bold text-white">{tb.percentage}%</span>
+                </div>
+                <div className="w-full bg-slate-800 h-2 rounded-full overflow-hidden">
+                  <div className="bg-indigo-500 h-full rounded-full" style={{ width: `${tb.percentage}%` }} />
+                </div>
               </div>
-              <div className="w-full bg-slate-800 h-2 rounded-full overflow-hidden">
-                <div className="bg-indigo-500 h-full rounded-full" style={{ width: `${tb.percentage}%` }} />
-              </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        )}
 
         {/* Actions */}
         <div className="flex items-center gap-4 pt-4 border-t border-[#1e293b]">

@@ -15,6 +15,7 @@ export default function TakeTest() {
   const [isSubmitModalOpen, setIsSubmitModalOpen] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [startTime] = useState<number>(Date.now())
 
   useEffect(() => {
     document.title = 'Proctored Test — Kollab'
@@ -23,6 +24,22 @@ export default function TakeTest() {
       testsApi.getTestById(testId)
         .then((test) => {
           initTest(test.id, test.title, test.questions, test.timeLimit)
+          
+          // Restore draft answers if page refreshed
+          try {
+            const savedDraft = localStorage.getItem(`kollab_draft_${testId}`)
+            if (savedDraft) {
+              const draftData = JSON.parse(savedDraft)
+              if (draftData.answers) {
+                Object.entries(draftData.answers).forEach(([qId, optId]) => {
+                  setAnswer(qId, optId as string)
+                })
+              }
+            }
+          } catch (e) {
+            console.warn('Draft restoration warning:', e)
+          }
+
           setIsLoading(false)
           
           // Request fullscreen
@@ -56,6 +73,17 @@ export default function TakeTest() {
     return () => document.removeEventListener('visibilitychange', handleVisibilityChange)
   }, [testId])
 
+  // Save draft answers to localStorage continuously
+  useEffect(() => {
+    if (testId && Object.keys(answers).length > 0) {
+      try {
+        localStorage.setItem(`kollab_draft_${testId}`, JSON.stringify({ answers }))
+      } catch (e) {
+        console.warn('LocalStorage draft save error:', e)
+      }
+    }
+  }, [testId, answers])
+
   useEffect(() => {
     // Timer tick interval
     const interval = setInterval(() => {
@@ -68,24 +96,27 @@ export default function TakeTest() {
     submitTest()
     setIsSubmitModalOpen(false)
     
+    // Clear auto-saved draft
+    if (testId) {
+      localStorage.removeItem(`kollab_draft_${testId}`)
+    }
+
     if (document.fullscreenElement) {
       document.exitFullscreen().catch(() => {})
     }
     
     try {
       const state = useTestStore.getState()
-      // Max time is calculated from the initial setup time (if we assume timeLimit was total)
-      // Since we don't store timeLimit separately, we just estimate or send what we have.
-      // But we just need a number for timeTaken
+      const elapsedSeconds = Math.max(10, Math.floor((Date.now() - startTime) / 1000))
+      
       const result = await testsApi.submitTest(testId as string, {
         answers: state.answers,
-        timeTaken: state.tabSwitches * 10, // Just a placeholder time if we don't have exactly elapsed, but let's just pass 600 as default or actual elapsed
+        timeTaken: elapsedSeconds,
         tabSwitches: state.tabSwitches
       })
       navigate(`/student/test/${testId}/result`, { state: { result } })
     } catch (err) {
       console.error('Submit failed', err)
-      // Fallback navigate if API fails, so user is not stuck
       navigate(`/student/test/${testId}/result`)
     }
   }

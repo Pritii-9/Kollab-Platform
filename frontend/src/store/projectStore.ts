@@ -1,8 +1,7 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
-import type { Project, CreateProjectData, Task, Milestone } from '../types/project.types'
+import type { Project, CreateProjectData } from '../types/project.types'
 import { projectsApi } from '../api/projects.api'
-import { MOCK_PROJECTS } from '../utils/mockData'
 
 interface ProjectStore {
   projects: Project[]
@@ -30,7 +29,6 @@ export const useProjectStore = create<ProjectStore>()(
         try {
           const apiProjects = await projectsApi.listProjects()
           if (apiProjects && apiProjects.length > 0) {
-            // Merge API projects with locally saved user created projects that may not be in DB yet
             const existingProjects = get().projects
             const localOnly = existingProjects.filter(
               (p) => p.id.startsWith('p-') && !apiProjects.some((ap) => ap.id === p.id)
@@ -46,14 +44,12 @@ export const useProjectStore = create<ProjectStore>()(
       },
 
       getProjectById: async (id: string) => {
-        // First check in-memory store
         const existing = get().projects.find((p) => p.id === id)
         if (existing) {
           set({ activeProject: existing })
           return existing
         }
 
-        // Try fetching from API
         try {
           const fetched = await projectsApi.getProjectById(id)
           if (fetched) {

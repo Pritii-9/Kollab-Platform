@@ -7,13 +7,13 @@ import StatCard from '@/components/dashboard/StatCard'
 import TrustScoreGauge from '@/components/charts/TrustScoreGauge'
 import ActivityAreaChart from '@/components/charts/ActivityAreaChart'
 import SkillRadarChart from '@/components/charts/SkillRadarChart'
-import { Award, FolderKanban, ClipboardList, Sparkles, ArrowRight, CheckCircle2, Calendar, ChevronRight, Clock, Star, TrendingUp, UserPlus, AlertTriangle, BookOpen } from 'lucide-react'
+import { Award, FolderKanban, ClipboardList, Sparkles, ArrowRight, BarChart3 } from 'lucide-react'
 
 export default function StudentDashboard() {
   const navigate = useNavigate()
   const { user } = useAuthStore()
   const { projects, fetchProjects } = useProjectStore()
-  const [loading, setLoading] = useState(true)
+  const [loading, setLoading] = useState(false)
   const [readiness, setReadiness] = useState<PlacementReadinessResult | null>(null)
 
   useEffect(() => {
@@ -24,25 +24,10 @@ export default function StudentDashboard() {
     }).catch((err) => {
       console.warn('Readiness API error:', err)
     })
-    const timer = setTimeout(() => setLoading(false), 800)
-    return () => clearTimeout(timer)
   }, [])
 
   const activeProjectsCount = projects.filter((p) => p.status === 'Active').length
   const completedProjectsCount = projects.filter((p) => p.status === 'Completed').length
-
-  if (loading) {
-    return (
-      <div className="space-y-6 animate-pulse">
-        <div className="h-28 bg-[#0f172a] rounded-2xl border border-[#1e293b]" />
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          {[1, 2, 3, 4].map((i) => (
-            <div key={i} className="h-32 bg-[#0f172a] rounded-2xl border border-[#1e293b]" />
-          ))}
-        </div>
-      </div>
-    )
-  }
 
   const currentYear = user?.year || 3
   const stepperData = [1, 2, 3, 4].map((y) => {
@@ -77,16 +62,16 @@ export default function StudentDashboard() {
           </p>
         </div>
         <button
-          onClick={() => navigate('/student/test/test1')}
+          onClick={() => navigate('/student/analytics')}
           className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 font-extrabold text-white text-xs shadow-lg shadow-indigo-600/25 flex items-center gap-2 transition-all"
         >
-          <ClipboardList size={16} /> Take Recommended Test
+          <BarChart3 size={16} /> View My Analytics
         </button>
       </div>
 
       {/* 4 Stat Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard title="Trust Score" value={user?.trustScore || 0} subtitle={user?.trustScore ? `Trust rating ${user.trustScore}` : "No trust score yet"} icon={<Award size={20} />}>
+        <StatCard title="Trust Score" value={user?.trustScore || 0} subtitle={user?.trustScore ? `Trust rating ${user.trustScore}` : "No assessments taken yet"} icon={<Award size={20} />}>
           <TrustScoreGauge score={user?.trustScore || 0} size={60} showLabel={false} />
         </StatCard>
 
@@ -113,7 +98,7 @@ export default function StudentDashboard() {
         <StatCard
           title="Proctored Tests Taken"
           value={0}
-          subtitle="No tests completed"
+          subtitle="No tests completed yet"
           icon={<ClipboardList size={20} />}
           iconBg="bg-violet-500/10 text-violet-400 border border-violet-500/20"
         />
@@ -183,17 +168,16 @@ export default function StudentDashboard() {
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         <div className="lg:col-span-7 space-y-6">
           <div className="p-5 rounded-2xl bg-[#0f172a] border border-[#1e293b] space-y-3">
-            <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/10 text-amber-400 border border-amber-500/20">
-              Assigned Action Needed
-            </span>
-            <h3 className="text-base font-extrabold text-white">React Fundamentals Assessment</h3>
-            <p className="text-xs text-slate-400">Assigned by Prof. Sarah Jenkins · Due Sep 30, 2026</p>
-            <button
-              onClick={() => navigate('/student/test/test1')}
-              className="w-full py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs shadow-lg shadow-indigo-600/20 flex items-center justify-center gap-2"
-            >
-              Take Test Now <ArrowRight size={14} />
-            </button>
+            <div className="flex items-center justify-between">
+              <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/10 text-amber-400 border border-amber-500/20">
+                Assigned Tests
+              </span>
+            </div>
+            <div className="flex flex-col items-center justify-center py-6 gap-2 text-center">
+              <ClipboardList size={28} className="text-slate-700" />
+              <p className="text-sm font-semibold text-slate-400">No Tests Assigned</p>
+              <p className="text-xs text-slate-600">Your coordinator hasn't assigned any tests yet. Check back soon.</p>
+            </div>
           </div>
         </div>
 

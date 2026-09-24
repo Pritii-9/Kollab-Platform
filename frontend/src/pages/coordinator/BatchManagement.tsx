@@ -1,45 +1,79 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { MOCK_BATCHES } from '@/utils/mockData'
+import { batchesApi } from '@/api/batches.api'
+import type { Batch } from '@/types/batch.types'
 import { DEPARTMENTS } from '@/utils/constants'
-import { Plus, Users, Award, FolderKanban, CheckCircle, Eye, Edit3, Archive, X } from 'lucide-react'
+import { Plus, Users, Award, FolderKanban, CheckCircle, Eye, Edit3, Archive, X, Loader2 } from 'lucide-react'
 import CustomSelect from '@/components/shared/CustomSelect'
+
+import { useCacheStore } from '@/store/cacheStore'
 
 export default function BatchManagement() {
   const navigate = useNavigate()
-  const [batches, setBatches] = useState(MOCK_BATCHES)
+  const { batches, setBatches } = useCacheStore()
+  const [loading, setLoading] = useState(batches.length === 0)
   const [isModalOpen, setIsModalOpen] = useState(false)
 
   // Form state
   const [dept, setDept] = useState(DEPARTMENTS[0])
   const [year, setYear] = useState('3')
   const [section, setSection] = useState('Batch A')
-  const [coordinatorName, setCoordinatorName] = useState('Prof. Sarah Jenkins')
-  const [academicYear, setAcademicYear] = useState('2025-2026')
+  const [coordinatorName, setCoordinatorName] = useState('')
+  const [academicYear, setAcademicYear] = useState('')
+  const [submitting, setSubmitting] = useState(false)
 
   useEffect(() => {
     document.title = 'Batches — Kollab'
+    loadBatches()
   }, [])
 
-  const handleCreateBatch = (e: React.FormEvent) => {
-    e.preventDefault()
-    const newBatch = {
-      id: `b${Date.now()}`,
-      name: `${dept} - Year ${year} (${section})`,
-      department: dept,
-      year: Number(year),
-      section: section,
-      coordinator: coordinatorName,
-      totalStudents: 40,
-      skillVerified: 0,
-      activeProjects: 0,
-      placementReady: 0,
-      readinessPercent: 0,
-      academicYear: academicYear,
-      status: 'Active' as const
+  const loadBatches = async () => {
+    try {
+      const data = await batchesApi.listBatches()
+      if (data && data.length > 0) setBatches(data)
+    } catch (err) {
+      console.error('Failed to fetch batches:', err)
+    } finally {
+      setLoading(false)
     }
-    setBatches([newBatch, ...batches])
-    setIsModalOpen(false)
+  }
+
+  const handleCreateBatch = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setSubmitting(true)
+    try {
+      const created = await batchesApi.createBatch({
+        department: dept,
+        year: Number(year),
+        section: section,
+        coordinator: coordinatorName,
+        academicYear: academicYear,
+      })
+      setBatches([created, ...batches])
+      setIsModalOpen(false)
+    } catch (err) {
+      console.error('Failed to create batch:', err)
+      // fallback to optimistic update if backend error
+      const newBatch: Batch = {
+        id: `b${Date.now()}`,
+        name: `${dept} - Year ${year} (${section})`,
+        department: dept,
+        year: Number(year),
+        section: section,
+        coordinator: coordinatorName,
+        totalStudents: 0,
+        skillVerified: 0,
+        activeProjects: 0,
+        placementReady: 0,
+        readinessPercent: 0,
+        academicYear: academicYear,
+        status: 'Active'
+      }
+      setBatches([newBatch, ...batches])
+      setIsModalOpen(false)
+    } finally {
+      setSubmitting(false)
+    }
   }
 
   return (
@@ -59,112 +93,119 @@ export default function BatchManagement() {
       </div>
 
       {/* Batches Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {batches.map((batch) => (
-          <div
-            key={batch.id}
-            className="p-6 rounded-2xl bg-[#0f172a] border border-[#1e293b] hover:border-slate-700 transition-all duration-300 shadow-xl flex flex-col justify-between space-y-4"
-          >
-            <div>
-              <div className="flex items-center justify-between mb-2">
-                <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">
-                  {batch.academicYear}
-                </span>
-                <span
-                  className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold capitalize ${
-                    batch.status === 'Active'
-                      ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
-                      : batch.status === 'Upcoming'
-                      ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20'
-                      : 'bg-slate-500/10 text-slate-400 border border-slate-500/20'
-                  }`}
+      {loading ? (
+        <div className="py-16 text-center text-slate-400 text-xs">
+          <Loader2 size={32} className="animate-spin text-indigo-500 mx-auto mb-2" />
+          Loading batches...
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {batches.map((batch) => (
+            <div
+              key={batch.id}
+              className="p-6 rounded-2xl bg-[#0f172a] border border-[#1e293b] hover:border-slate-700 transition-all duration-300 shadow-xl flex flex-col justify-between space-y-4"
+            >
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">
+                    {batch.academicYear}
+                  </span>
+                  <span
+                    className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold capitalize ${
+                      batch.status === 'Active'
+                        ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
+                        : batch.status === 'Upcoming'
+                        ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20'
+                        : 'bg-slate-500/10 text-slate-400 border border-slate-500/20'
+                    }`}
+                  >
+                    {batch.status}
+                  </span>
+                </div>
+
+                <h3 className="text-lg font-extrabold text-white mb-1">{batch.name}</h3>
+                <p className="text-xs text-slate-400 mb-4">Coordinator: {batch.coordinator}</p>
+
+                {/* 4 Mini Stats Grid */}
+                <div className="grid grid-cols-2 gap-3 p-3 rounded-xl bg-[#080d18] border border-[#1e293b] text-xs">
+                  <div className="flex items-center gap-2">
+                    <Users size={14} className="text-indigo-400" />
+                    <div>
+                      <span className="text-slate-400 block text-[10px]">Students</span>
+                      <span className="font-bold text-white">{batch.totalStudents}</span>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Award size={14} className="text-emerald-400" />
+                    <div>
+                      <span className="text-slate-400 block text-[10px]">Verified</span>
+                      <span className="font-bold text-white">{batch.skillVerified}</span>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <FolderKanban size={14} className="text-amber-400" />
+                    <div>
+                      <span className="text-slate-400 block text-[10px]">Projects</span>
+                      <span className="font-bold text-white">{batch.activeProjects}</span>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <CheckCircle size={14} className="text-violet-400" />
+                    <div>
+                      <span className="text-slate-400 block text-[10px]">Readiness</span>
+                      <span className="font-bold text-white">{batch.readinessPercent}%</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Progress Bar */}
+              <div>
+                <div className="flex items-center justify-between text-xs mb-1">
+                  <span className="text-slate-400">Cohort Readiness</span>
+                  <span className="font-bold text-emerald-400">{batch.readinessPercent}%</span>
+                </div>
+                <div className="w-full h-2 rounded-full bg-slate-800 overflow-hidden">
+                  <div
+                    className="h-full rounded-full bg-gradient-to-r from-indigo-500 to-emerald-400 transition-all duration-500"
+                    style={{ width: `${batch.readinessPercent}%` }}
+                  />
+                </div>
+              </div>
+
+              {/* 3 Action Buttons */}
+              <div className="flex items-center gap-2 pt-2 border-t border-[#1e293b]">
+                <button
+                  onClick={() => navigate('/coordinator/students')}
+                  className="flex-1 py-1.5 px-3 rounded-xl bg-indigo-600/10 hover:bg-indigo-600/20 text-indigo-400 text-xs font-semibold flex items-center justify-center gap-1.5 border border-indigo-500/20"
                 >
-                  {batch.status}
-                </span>
-              </div>
-
-              <h3 className="text-lg font-extrabold text-white mb-1">{batch.name}</h3>
-              <p className="text-xs text-slate-400 mb-4">Coordinator: {batch.coordinator}</p>
-
-              {/* 4 Mini Stats Grid */}
-              <div className="grid grid-cols-2 gap-3 p-3 rounded-xl bg-[#080d18] border border-[#1e293b] text-xs">
-                <div className="flex items-center gap-2">
-                  <Users size={14} className="text-indigo-400" />
-                  <div>
-                    <span className="text-slate-400 block text-[10px]">Students</span>
-                    <span className="font-bold text-white">{batch.totalStudents}</span>
-                  </div>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Award size={14} className="text-emerald-400" />
-                  <div>
-                    <span className="text-slate-400 block text-[10px]">Verified</span>
-                    <span className="font-bold text-white">{batch.skillVerified}</span>
-                  </div>
-                </div>
-                <div className="flex items-center gap-2">
-                  <FolderKanban size={14} className="text-amber-400" />
-                  <div>
-                    <span className="text-slate-400 block text-[10px]">Projects</span>
-                    <span className="font-bold text-white">{batch.activeProjects}</span>
-                  </div>
-                </div>
-                <div className="flex items-center gap-2">
-                  <CheckCircle size={14} className="text-violet-400" />
-                  <div>
-                    <span className="text-slate-400 block text-[10px]">Readiness</span>
-                    <span className="font-bold text-white">{batch.readinessPercent}%</span>
-                  </div>
-                </div>
+                  <Eye size={14} /> View Students
+                </button>
+                <button className="p-1.5 rounded-xl bg-[#080d18] border border-[#1e293b] text-slate-400 hover:text-white">
+                  <Edit3 size={14} />
+                </button>
+                <button className="p-1.5 rounded-xl bg-[#080d18] border border-[#1e293b] text-slate-400 hover:text-rose-400">
+                  <Archive size={14} />
+                </button>
               </div>
             </div>
+          ))}
 
-            {/* Progress Bar */}
+          {/* Dashed Add Card */}
+          <button
+            onClick={() => setIsModalOpen(true)}
+            className="p-6 rounded-2xl border-2 border-dashed border-[#1e293b] hover:border-indigo-500/50 bg-[#0f172a]/40 hover:bg-[#0f172a] transition-all flex flex-col items-center justify-center text-center space-y-3 min-h-[280px]"
+          >
+            <div className="w-12 h-12 rounded-full bg-indigo-600/10 text-indigo-400 flex items-center justify-center">
+              <Plus size={24} />
+            </div>
             <div>
-              <div className="flex items-center justify-between text-xs mb-1">
-                <span className="text-slate-400">Cohort Readiness</span>
-                <span className="font-bold text-emerald-400">{batch.readinessPercent}%</span>
-              </div>
-              <div className="w-full h-2 rounded-full bg-slate-800 overflow-hidden">
-                <div
-                  className="h-full rounded-full bg-gradient-to-r from-indigo-500 to-emerald-400 transition-all duration-500"
-                  style={{ width: `${batch.readinessPercent}%` }}
-                />
-              </div>
+              <h4 className="font-bold text-white text-sm">Add New Batch</h4>
+              <p className="text-xs text-slate-400">Setup a new academic section cohort</p>
             </div>
-
-            {/* 3 Action Buttons */}
-            <div className="flex items-center gap-2 pt-2 border-t border-[#1e293b]">
-              <button
-                onClick={() => navigate('/coordinator/students')}
-                className="flex-1 py-1.5 px-3 rounded-xl bg-indigo-600/10 hover:bg-indigo-600/20 text-indigo-400 text-xs font-semibold flex items-center justify-center gap-1.5 border border-indigo-500/20"
-              >
-                <Eye size={14} /> View Students
-              </button>
-              <button className="p-1.5 rounded-xl bg-[#080d18] border border-[#1e293b] text-slate-400 hover:text-white">
-                <Edit3 size={14} />
-              </button>
-              <button className="p-1.5 rounded-xl bg-[#080d18] border border-[#1e293b] text-slate-400 hover:text-rose-400">
-                <Archive size={14} />
-              </button>
-            </div>
-          </div>
-        ))}
-
-        {/* Dashed Add Card */}
-        <button
-          onClick={() => setIsModalOpen(true)}
-          className="p-6 rounded-2xl border-2 border-dashed border-[#1e293b] hover:border-indigo-500/50 bg-[#0f172a]/40 hover:bg-[#0f172a] transition-all flex flex-col items-center justify-center text-center space-y-3 min-h-[280px]"
-        >
-          <div className="w-12 h-12 rounded-full bg-indigo-600/10 text-indigo-400 flex items-center justify-center">
-            <Plus size={24} />
-          </div>
-          <div>
-            <h4 className="font-bold text-white text-sm">Add New Batch</h4>
-            <p className="text-xs text-slate-400">Setup a new academic section cohort</p>
-          </div>
-        </button>
-      </div>
+          </button>
+        </div>
+      )}
 
       {/* Modal */}
       {isModalOpen && (
@@ -249,9 +290,10 @@ export default function BatchManagement() {
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 text-xs font-bold bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl shadow-lg shadow-indigo-600/20"
+                  disabled={submitting}
+                  className="px-4 py-2 text-xs font-bold bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl shadow-lg shadow-indigo-600/20 disabled:opacity-50"
                 >
-                  Create Batch
+                  {submitting ? 'Creating...' : 'Create Batch'}
                 </button>
               </div>
             </form>

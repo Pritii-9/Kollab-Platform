@@ -1,7 +1,6 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import type { Task, TaskStatus } from '../types/project.types'
-import { MOCK_TASKS } from '../utils/mockData'
 
 interface KanbanStore {
   tasks: Record<string, Task>
@@ -14,9 +13,6 @@ interface KanbanStore {
   updateTask: (taskId: string, updates: Partial<Task>) => void
   deleteTask: (taskId: string) => void
 }
-
-const initialTasks: Record<string, Task> = {}
-MOCK_TASKS.forEach((t) => { initialTasks[t.id] = t })
 
 const buildColumns = (tasks: Record<string, Task>) => {
   const cols: KanbanStore['columns'] = [
@@ -34,7 +30,7 @@ const buildColumns = (tasks: Record<string, Task>) => {
 
 export const useKanbanStore = create<KanbanStore>()(
   persist(
-    (set, get) => ({
+    (set) => ({
       tasks: {},
       columns: buildColumns({}),
       activeTaskId: null,

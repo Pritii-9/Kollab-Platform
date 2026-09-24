@@ -1,5 +1,6 @@
 import React from 'react'
 import type { Batch } from '@/types/batch.types'
+import { FolderKanban } from 'lucide-react'
 
 interface BatchProgressTableProps {
   batches: Batch[]
@@ -12,6 +13,15 @@ const getReadinessColor = (val: number) => {
 }
 
 export function BatchProgressTable({ batches }: BatchProgressTableProps) {
+  if (!batches || batches.length === 0) {
+    return (
+      <div className="p-8 rounded-2xl border border-[#1e293b] bg-[#0f172a] text-center space-y-2">
+        <FolderKanban size={32} className="mx-auto text-slate-600" />
+        <p className="text-xs text-slate-400">No active batches created yet.</p>
+      </div>
+    )
+  }
+
   return (
     <div className="overflow-x-auto rounded-2xl border border-[#1e293b] bg-[#0f172a]">
       <table className="w-full text-left border-collapse text-xs">

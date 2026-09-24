@@ -4,9 +4,7 @@ import { useAuthStore } from '@/store/authStore'
 import TrustScoreGauge from '@/components/charts/TrustScoreGauge'
 import PlacementStatusBadge from '@/components/student/PlacementStatusBadge'
 import SkillBadge from '@/components/student/SkillBadge'
-import SkillRadarChart from '@/components/charts/SkillRadarChart'
-import { MOCK_RADAR_DATA } from '@/utils/mockData'
-import { Code, Edit3, Award, Star, CheckCircle } from 'lucide-react'
+import { Code, Edit3 } from 'lucide-react'
 
 export default function MyProfile() {
   const navigate = useNavigate()
@@ -14,14 +12,14 @@ export default function MyProfile() {
   
   const student = {
     name: user?.name || 'Student',
-    rollNumber: (user as any)?.rollNumber || 'N/A', // Using any in case rollNumber isn't typed properly on frontend User yet
+    rollNumber: user?.rollNumber || 'N/A',
     department: user?.department || 'Unknown',
     year: user?.year || 1,
-    batch: user?.batch || 'Unknown',
-    cgpa: (user as any)?.cgpa || 'N/A',
-    placementStatus: (user as any)?.placementStatus || 'In Process',
-    trustScore: (user as any)?.trustScore || 0,
-    skills: [] as any[],
+    batch: user?.batch || 'Batch A',
+    cgpa: user?.cgpa || 'N/A',
+    placementStatus: (user?.placementStatus as 'Placed' | 'Eligible' | 'Ineligible' | 'In Process') || 'In Process',
+    trustScore: user?.trustScore || 0,
+    skills: user?.skills || [],
   }
 
   const [activeTab, setActiveTab] = useState<'overview' | 'skills' | 'projects' | 'reviews'>('overview')
@@ -58,12 +56,12 @@ export default function MyProfile() {
             <TrustScoreGauge score={student.trustScore} size={90} />
             <div className="flex flex-col gap-2">
               <a
-                href="https://github.com"
+                href={user?.github ? `https://${user.github}` : "https://github.com"}
                 target="_blank"
                 rel="noreferrer"
                 className="px-3.5 py-2 rounded-xl bg-[#080d18] border border-[#1e293b] hover:border-slate-600 text-slate-300 text-xs font-semibold flex items-center gap-2"
               >
-                <Code size={14} /> GitHub Linked
+                <Code size={14} /> GitHub Profile
               </a>
               <button
                 onClick={() => navigate('/student/settings')}
@@ -95,19 +93,8 @@ export default function MyProfile() {
             <div className="p-4 rounded-xl bg-[#080d18] border border-[#1e293b] space-y-2">
               <h4 className="font-bold text-white text-sm">Student Bio</h4>
               <p className="text-slate-300 leading-relaxed">
-                Add a bio to your profile to let recruiters know about your interests and career goals.
+                {user?.bio || 'Add a bio to your profile in Settings to let recruiters know about your technical interests and career goals.'}
               </p>
-            </div>
-
-            <div className="p-4 rounded-xl bg-[#080d18] border border-[#1e293b] space-y-2">
-              <h4 className="font-bold text-white text-sm">Target Roles & Interests</h4>
-              <div className="flex flex-wrap gap-2">
-                {['Full Stack Developer', 'Frontend Engineer', 'React Specialist', 'Node.js Architect'].map((r) => (
-                  <span key={r} className="px-3 py-1 rounded-lg bg-indigo-600/10 border border-indigo-500/20 text-indigo-300 font-semibold">
-                    {r}
-                  </span>
-                ))}
-              </div>
             </div>
           </div>
         )}
@@ -117,7 +104,7 @@ export default function MyProfile() {
             <div className="flex items-center justify-between">
               <h3 className="text-sm font-bold text-white">Verified Skill Badges</h3>
               <button
-                onClick={() => navigate('/student/test/test1')}
+                onClick={() => navigate('/student/analytics')}
                 className="px-3 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold"
               >
                 + Take New Skill Test
@@ -125,8 +112,8 @@ export default function MyProfile() {
             </div>
 
             <div className="space-y-3">
-              {student.skills.length > 0 ? student.skills.map((s) => (
-                <div key={s.id} className="p-4 rounded-xl bg-[#080d18] border border-[#1e293b] flex items-center justify-between text-xs">
+              {student.skills.length > 0 ? student.skills.map((s: any, idx: number) => (
+                <div key={s.id || idx} className="p-4 rounded-xl bg-[#080d18] border border-[#1e293b] flex items-center justify-between text-xs">
                   <div className="flex items-center gap-3">
                     <SkillBadge status={s.status} />
                     <span className="font-bold text-white">{s.name}</span>
@@ -147,13 +134,13 @@ export default function MyProfile() {
 
         {activeTab === 'projects' && (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <p className="text-slate-400 text-xs col-span-2">No projects yet. Create or join a project from the Projects tab.</p>
+            <p className="text-slate-400 text-xs col-span-2">No projects joined yet. Create or join a project from My Projects.</p>
           </div>
         )}
 
         {activeTab === 'reviews' && (
           <div className="space-y-3">
-            <p className="text-slate-400 text-xs">No peer reviews yet.</p>
+            <p className="text-slate-400 text-xs">No peer reviews recorded yet.</p>
           </div>
         )}
       </div>
