@@ -74,8 +74,8 @@ class StudentProfileUpdate(BaseModel):
     bio: Optional[str] = None
     github: Optional[str] = None
     linkedin: Optional[str] = None
-    cgpa: Optional[float] = None
     department: Optional[str] = None
+    cgpa: Optional[float] = None
 
 class TimelineEventSchema(BaseModel):
     id: str

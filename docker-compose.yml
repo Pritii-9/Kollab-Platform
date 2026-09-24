@@ -1,0 +1,98 @@
+services:
+  # ─── PostgreSQL 15 with pgvector extension ─────────────────────────────────
+  db:
+    image: pgvector/pgvector:pg15
+    container_name: kollab-db
+    restart: unless-stopped
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-kollab_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-kollab_pass}
+      POSTGRES_DB: ${POSTGRES_DB:-kollab}
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-kollab_user} -d ${POSTGRES_DB:-kollab}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - kollab-net
+
+  # ─── Redis 7 Alpine — Cache & Rate Limiting ────────────────────────────────
+  redis:
+    image: redis:7-alpine
+    container_name: kollab-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    command: ["redis-server", "--appendonly", "yes", "--maxmemory", "128mb", "--maxmemory-policy", "allkeys-lru"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - kollab-net
+
+  # ─── FastAPI Backend ────────────────────────────────────────────────────────
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: kollab-backend
+    restart: unless-stopped
+    ports:
+      - "5000:5000"
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      ENVIRONMENT: ${ENVIRONMENT:-production}
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-kollab_user}:${POSTGRES_PASSWORD:-kollab_pass}@db:5432/${POSTGRES_DB:-kollab}
+      REDIS_URL: redis://redis:6379/0
+      SECRET_KEY: ${SECRET_KEY}
+      GROQ_API_KEY: ${GROQ_API_KEY}
+      GROQ_MODEL: ${GROQ_MODEL:-llama-3.1-70b-versatile}
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY}
+      AWS_REGION: ${AWS_REGION:-ap-south-1}
+      S3_BUCKET_NAME: ${S3_BUCKET_NAME:-kollab-resumes-bucket}
+      MAIL_SERVER: ${MAIL_SERVER:-smtp.gmail.com}
+      MAIL_PORT: ${MAIL_PORT:-587}
+      MAIL_USERNAME: ${MAIL_USERNAME}
+      MAIL_PASSWORD: ${MAIL_PASSWORD}
+      MAIL_USE_TLS: ${MAIL_USE_TLS:-true}
+      BACKEND_CORS_ORIGINS: '["http://localhost", "http://localhost:80", "http://localhost:5173", "http://localhost:5000"]'
+    networks:
+      - kollab-net
+
+  # ─── React + Vite Frontend (Nginx) ─────────────────────────────────────────
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: kollab-frontend
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    depends_on:
+      backend:
+        condition: service_healthy
+    networks:
+      - kollab-net
+
+networks:
+  kollab-net:
+    driver: bridge
+
+volumes:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local

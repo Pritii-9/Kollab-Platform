@@ -16,7 +16,7 @@ class User(BaseModel):
     roll_number: Mapped[Optional[str]] = mapped_column(String(50), nullable=True, index=True)
     department: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
     year: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
-    batch: Mapped[Optional[str]] = mapped_column(String(20), nullable=True)
+    batch: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
     cgpa: Mapped[Optional[float]] = mapped_column(Float, default=0.0)
     avatar: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
     bio: Mapped[Optional[str]] = mapped_column(Text, nullable=True)

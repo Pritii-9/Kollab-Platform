@@ -38,11 +38,6 @@ async def get_current_user(
     db: AsyncSession = Depends(get_db)
 ) -> User:
     if not credentials:
-        # Fallback to demo default student user if no token is passed for easy local dev testing
-        result = await db.execute(select(User).filter(User.email == "aanya@college.edu"))
-        user = result.scalars().first()
-        if user:
-            return user
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Authentication required",

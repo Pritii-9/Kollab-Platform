@@ -1,0 +1,16 @@
+__pycache__
+*.pyc
+venv/
+.venv/
+.env
+*.env
+tests/
+.pytest_cache
+.git
+.vscode
+.idea
+*.log
+*.db
+*.sqlite3
+*.pem
+*.key

@@ -24,7 +24,10 @@ async def get_placement_stats(db: AsyncSession = Depends(get_db)):
     return await ReportService.get_placement_stats(db)
 
 @router.get("/export-csv")
-async def export_students_csv(db: AsyncSession = Depends(get_db)):
+async def export_students_csv(
+    current_user: User = Depends(require_coordinator),
+    db: AsyncSession = Depends(get_db)
+):
     csv_data = await ReportService.export_students_csv(db)
     return Response(
         content=csv_data,

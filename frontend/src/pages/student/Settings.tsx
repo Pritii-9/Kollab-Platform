@@ -10,9 +10,9 @@ export default function Settings() {
 
   // Profile Form
   const [name, setName] = useState(user?.name || '')
-  const [bio, setBio] = useState('Full-stack CS student')
+  const [bio, setBio] = useState(user?.bio || '')
   const [cgpa, setCgpa] = useState((user as any)?.cgpa || '')
-  const [github, setGithub] = useState('')
+  const [github, setGithub] = useState(user?.github || '')
 
   // Toggles
   const [emailAlerts, setEmailAlerts] = useState(true)
@@ -23,7 +23,25 @@ export default function Settings() {
 
   useEffect(() => {
     document.title = 'Settings — Kollab'
-  }, [])
+    if (user) {
+      setName(user.name || '')
+      setBio(user.bio || '')
+      setCgpa((user as any)?.cgpa || '')
+      setGithub(user.github || '')
+    }
+  }, [user])
+
+  const handleProfileSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    try {
+      const { studentsApi } = await import('@/api/students.api')
+      await studentsApi.updateProfile({ name, cgpa: parseFloat(cgpa) || 0, bio, github })
+    } catch {
+      // fallback to local store update
+    }
+    updateUser({ name, cgpa, bio, github } as any)
+    toast.success('Profile saved successfully!')
+  }
 
   return (
     <div className="space-y-6">
@@ -58,7 +76,7 @@ export default function Settings() {
         {/* Right Content (9 cols) */}
         <div className="lg:col-span-9 p-6 rounded-2xl bg-[#0f172a] border border-[#1e293b] shadow-xl space-y-4">
           {activeSection === 'profile' && (
-            <form onSubmit={(e) => { e.preventDefault(); updateUser({ name, cgpa } as any); toast.success('Profile saved successfully!') }} className="space-y-4">
+            <form onSubmit={handleProfileSubmit} className="space-y-4">
               <h3 className="text-base font-bold text-white mb-4">Edit Student Profile</h3>
 
               <div className="grid grid-cols-2 gap-4">
@@ -88,6 +106,7 @@ export default function Settings() {
                   type="text"
                   value={github}
                   onChange={(e) => setGithub(e.target.value)}
+                  placeholder="https://github.com/username"
                   className="w-full px-3 py-2 rounded-xl bg-[#080d18] border border-[#1e293b] text-xs text-white"
                 />
               </div>
@@ -98,6 +117,7 @@ export default function Settings() {
                   rows={3}
                   value={bio}
                   onChange={(e) => setBio(e.target.value)}
+                  placeholder="Write a brief bio about your technical skills and goals..."
                   className="w-full px-3 py-2 rounded-xl bg-[#080d18] border border-[#1e293b] text-xs text-white resize-none"
                 />
               </div>

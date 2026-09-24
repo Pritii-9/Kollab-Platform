@@ -1,5 +1,5 @@
 import uuid
-from fastapi import APIRouter, UploadFile, File, Depends
+from fastapi import APIRouter, UploadFile, File, Depends, HTTPException
 from models.user import User
 from services.s3_service import S3Service
 from utils.jwt import get_current_user
@@ -12,7 +12,17 @@ async def upload_resume(
     current_user: User = Depends(get_current_user)
 ):
     contents = await file.read()
-    file_ext = file.filename.split(".")[-1] if "." in file.filename else "pdf"
+    
+    if len(contents) > 10 * 1024 * 1024:
+        raise HTTPException(status_code=413, detail="File too large")
+        
+    file_ext = file.filename.split(".")[-1].lower() if "." in file.filename else ""
+    if file_ext not in ["pdf", "doc", "docx"]:
+        raise HTTPException(status_code=400, detail="Invalid file extension")
+        
+    if file.content_type not in ["application/pdf", "application/msword", "application/vnd.openxmlformats-officedocument.wordprocessingml.document"]:
+        raise HTTPException(status_code=400, detail="Invalid content type")
+
     s3_key = f"resumes/{current_user.id}/{uuid.uuid4()}.{file_ext}"
 
     s3_url = await S3Service.upload_file(

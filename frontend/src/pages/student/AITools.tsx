@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Sparkles, Search, Cpu, Check, Copy, Loader2, AlertCircle } from 'lucide-react'
+import { Sparkles, Search, Cpu, Check, Copy, Loader2, AlertCircle, X } from 'lucide-react'
 import CustomSelect from '@/components/shared/CustomSelect'
 import { aiApi } from '@/api/ai.api'
 import { useAuthStore } from '@/store/authStore'
@@ -63,17 +63,19 @@ export default function AITools() {
 
   const handleAnalyzeSkillGap = async () => {
     setIsAnalyzingGap(true)
-    const userSkills = user?.skills?.map((s: any) => typeof s === 'string' ? s : s.name) || ['React', 'Node.js', 'JavaScript']
+    const userSkills = Array.isArray(user?.skills)
+      ? user.skills.map((s: any) => (typeof s === 'string' ? s : s?.name)).filter(Boolean)
+      : []
     try {
       const result = await aiApi.analyzeSkillGap(userSkills, role)
       setSkillGapResult(result)
     } catch (err) {
-      console.warn('Skill gap analysis call failed, generating calculated breakdown:', err)
+      console.warn('Skill gap analysis call failed:', err)
       setSkillGapResult({
-        readinessScore: 75,
-        matchedSkills: ['React', 'JavaScript'],
-        missingSkills: ['Docker', 'AWS', 'System Design'],
-        recommendations: ['Complete a proctored assessment in Docker.', 'Build a project showcasing AWS cloud integration.']
+        readinessScore: 0,
+        matchedSkills: [],
+        missingSkills: ['React', 'Node.js', 'TypeScript', 'PostgreSQL', 'Docker', 'AWS'],
+        recommendations: ['Earn your first verified badge by completing a proctored assessment.']
       })
     } finally {
       setIsAnalyzingGap(false)
@@ -82,18 +84,22 @@ export default function AITools() {
 
   const handleFindRoleMatches = async () => {
     setIsFindingRoles(true)
-    const userSkills = user?.skills?.map((s: any) => typeof s === 'string' ? s : s.name) || ['React', 'Node.js', 'Python']
+    const userSkills = Array.isArray(user?.skills)
+      ? user.skills.map((s: any) => (typeof s === 'string' ? s : s?.name)).filter(Boolean)
+      : []
     try {
       const res = await aiApi.recommendRoles(userSkills)
       if (res?.roles) {
         setRoleMatches(res.roles.map((r) => ({ role: r.role, matchPercentage: r.matchPercentage })))
+      } else if (Array.isArray(res)) {
+        setRoleMatches(res.map((r: any) => ({ role: r.role, matchPercentage: r.matchPercentage })))
       }
     } catch (err) {
-      console.warn('Role matches API failed, generating fallback matches:', err)
+      console.warn('Role matches API failed:', err)
       setRoleMatches([
-        { role: 'Frontend Engineer', matchPercentage: 88 },
-        { role: 'Full Stack Developer', matchPercentage: 82 },
-        { role: 'Backend Architect', matchPercentage: 65 }
+        { role: 'Full Stack Developer', matchPercentage: 0 },
+        { role: 'Frontend Engineer', matchPercentage: 0 },
+        { role: 'Backend Architect', matchPercentage: 0 }
       ])
     } finally {
       setIsFindingRoles(false)
@@ -138,7 +144,11 @@ export default function AITools() {
                   { value: 'Full Stack Developer', label: 'Full Stack Developer' },
                   { value: 'Frontend Engineer', label: 'Frontend Engineer' },
                   { value: 'Backend Architect', label: 'Backend Architect' },
-                  { value: 'ML Specialist', label: 'ML Specialist' }
+                  { value: 'Data Analyst & Scientist', label: 'Data Analyst & Scientist' },
+                  { value: 'DevOps & Cloud Engineer', label: 'DevOps & Cloud Engineer' },
+                  { value: 'Site Reliability Engineer (SRE)', label: 'Site Reliability Engineer (SRE)' },
+                  { value: 'Network & Cybersecurity Specialist', label: 'Network & Cybersecurity Specialist' },
+                  { value: 'AI / Machine Learning Engineer', label: 'AI / Machine Learning Engineer' },
                 ]}
                 className="w-full"
               />
@@ -178,7 +188,16 @@ export default function AITools() {
 
           {generatedBullets.length > 0 && (
             <div className="space-y-2 pt-2 border-t border-[#1e293b]">
-              <h4 className="text-xs font-bold text-indigo-400">Generated Resume Bullets:</h4>
+              <div className="flex items-center justify-between">
+                <h4 className="text-xs font-bold text-indigo-400">Generated Resume Bullets:</h4>
+                <button
+                  onClick={() => setGeneratedBullets([])}
+                  className="px-2 py-1 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 text-[10px] font-semibold flex items-center gap-1 transition-colors"
+                  title="Clear generated bullets"
+                >
+                  <X size={12} /> Clear
+                </button>
+              </div>
               {generatedBullets.map((bullet, idx) => (
                 <div key={idx} className="p-3 rounded-xl bg-[#080d18] border border-[#1e293b] flex items-center justify-between text-xs gap-3">
                   <p className="text-slate-200">• {bullet}</p>
@@ -213,7 +232,19 @@ export default function AITools() {
                 {isAnalyzingGap ? 'Analyzing...' : 'Analyze Gaps'}
               </button>
             </div>
-            <p className="text-xs text-slate-400">Compare your verified badges against Tier 1 tech company job descriptions.</p>
+
+            <div className="flex items-center justify-between gap-2">
+              <p className="text-xs text-slate-400">Compare your verified badges against target tech company job descriptions.</p>
+              {skillGapResult && (
+                <button
+                  onClick={() => setSkillGapResult(null)}
+                  className="px-2 py-0.5 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 font-semibold text-[11px] flex items-center gap-1 transition-colors border border-rose-500/20 shrink-0"
+                  title="Clear gap analysis"
+                >
+                  <X size={12} /> Clear
+                </button>
+              )}
+            </div>
 
             {skillGapResult ? (
               <div className="space-y-3">
@@ -264,7 +295,19 @@ export default function AITools() {
                 {isFindingRoles ? 'Matching...' : 'Find Matches'}
               </button>
             </div>
-            <p className="text-xs text-slate-400">AI analysis of your test scores, CGPA, and project telemetry.</p>
+
+            <div className="flex items-center justify-between gap-2">
+              <p className="text-xs text-slate-400">AI analysis of your test scores, CGPA, and project telemetry.</p>
+              {roleMatches.length > 0 && (
+                <button
+                  onClick={() => setRoleMatches([])}
+                  className="px-2 py-0.5 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 font-semibold text-[11px] flex items-center gap-1 transition-colors border border-rose-500/20 shrink-0"
+                  title="Clear role matches"
+                >
+                  <X size={12} /> Clear
+                </button>
+              )}
+            </div>
 
             {roleMatches.length > 0 ? (
               <div className="space-y-3">

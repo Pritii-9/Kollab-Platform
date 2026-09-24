@@ -35,8 +35,8 @@ async def seed_database(session: AsyncSession):
         if b["name"] not in existing_names:
             session.add(Batch(**b))
 
-    # Check if coordinator and student Priti Jadhav exist
-    user_check = await session.execute(select(User).limit(1))
+    # Check if student Priti Jadhav exists
+    user_check = await session.execute(select(User).filter(User.email == "priti@college.edu"))
     if user_check.scalars().first():
         await session.commit()
         logger.info("Batches synced. Database ready.")
@@ -45,57 +45,61 @@ async def seed_database(session: AsyncSession):
     logger.info("Seeding database with real platform structure (Priti Jadhav in CSE Batch B)...")
     pwd_hash = get_password_hash("password123")
 
-    # 1. Seed System Coordinator
-    coordinator = User(
-        id="coord1",
-        name="Prof. Sarah Jenkins",
-        email="coordinator@college.edu",
-        password_hash=pwd_hash,
-        role="coordinator",
-        department="Computer Science & Engineering",
-        avatar="",
-        is_active=True
-    )
-    session.add(coordinator)
-
-    # 2. Seed Real Student: Priti Jadhav in Year 4 CSE Batch B
-    priti_student = User(
-        id="student-priti",
-        name="Priti Jadhav",
-        email="priti@college.edu",
-        password_hash=pwd_hash,
-        role="student",
-        department="Computer Science & Engineering",
-        year=4,
-        batch="CSE Batch B",
-        roll_number="CSE21001",
-        cgpa=8.9,
-        trust_score=92,
-        placement_status="Eligible",
-        bio="Full stack & ML developer. Passionate about web platform architecture.",
-        github="github.com/Pritii-9",
-        linkedin="linkedin.com/in/priti-jadhav",
-        is_active=True
-    )
-    session.add(priti_student)
-    await session.flush()
-
-    # Seed verified skills for Priti
-    skills_priti = [
-        ("React", "verified", 92),
-        ("Node.js", "verified", 88),
-        ("Python", "verified", 90),
-        ("FastAPI", "verified", 86)
-    ]
-    for sname, sstatus, sscore in skills_priti:
-        sk = StudentSkill(
-            student_id=priti_student.id,
-            name=sname,
-            status=sstatus,
-            score=sscore,
-            last_tested="2026-03-10"
+    # 1. Seed System Coordinator if not exists
+    coord_check = await session.execute(select(User).filter(User.id == "coord1"))
+    if not coord_check.scalars().first():
+        coordinator = User(
+            id="coord1",
+            name="Prof. Sarah Jenkins",
+            email="coordinator@college.edu",
+            password_hash=pwd_hash,
+            role="coordinator",
+            department="Computer Science & Engineering",
+            avatar="",
+            is_active=True
         )
-        session.add(sk)
+        session.add(coordinator)
+
+    # 2. Seed Real Student: Priti Jadhav if not exists
+    priti_check = await session.execute(select(User).filter(User.id == "student-priti"))
+    if not priti_check.scalars().first():
+        priti_student = User(
+            id="student-priti",
+            name="Priti Jadhav",
+            email="priti@college.edu",
+            password_hash=pwd_hash,
+            role="student",
+            department="Computer Science & Engineering",
+            year=4,
+            batch="CSE Batch B",
+            roll_number="CSE21001",
+            cgpa=8.9,
+            trust_score=92,
+            placement_status="Eligible",
+            bio="Full stack & ML developer. Passionate about web platform architecture.",
+            github="github.com/Pritii-9",
+            linkedin="linkedin.com/in/priti-jadhav",
+            is_active=True
+        )
+        session.add(priti_student)
+        await session.flush()
+
+        # Seed verified skills for Priti
+        skills_priti = [
+            ("React", "verified", 92),
+            ("Node.js", "verified", 88),
+            ("Python", "verified", 90),
+            ("FastAPI", "verified", 86)
+        ]
+        for sname, sstatus, sscore in skills_priti:
+            sk = StudentSkill(
+                student_id=priti_student.id,
+                name=sname,
+                status=sstatus,
+                score=sscore,
+                last_tested="2026-03-10"
+            )
+            session.add(sk)
 
     # 3. Seed Department Batches: CSE Batch A, CSE Batch B (Priti), CSE Batch C
     batches_data = [
@@ -146,3 +150,12 @@ async def seed_database(session: AsyncSession):
 
     await session.commit()
     logger.info("Database seeding successfully completed for CSE Batches A, B (Priti Jadhav), C!")
+
+if __name__ == "__main__":
+    import asyncio
+    from database import AsyncSessionLocal, init_db
+    async def main():
+        await init_db()
+        async with AsyncSessionLocal() as session:
+            await seed_database(session)
+    asyncio.run(main())

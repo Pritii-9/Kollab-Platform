@@ -16,8 +16,18 @@ from utils.jwt import get_current_user, require_coordinator
 router = APIRouter(prefix="/tests", tags=["Tests & Proctoring"])
 
 @router.get("", response_model=List[TestResponse])
-async def list_tests(db: AsyncSession = Depends(get_db)):
-    return await TestService.list_tests(db)
+async def list_tests(
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    tests = await TestService.list_tests(db)
+    if current_user.role == "student":
+        for t in tests:
+            for q in t.questions:
+                q.explanation = None
+                for opt in q.options:
+                    opt.isCorrect = None
+    return tests
 
 @router.post("", response_model=TestResponse)
 async def create_and_assign_test(
@@ -43,8 +53,13 @@ async def get_my_attempts(
     return await TestService.get_student_attempts(current_user.id, db)
 
 @router.get("/{test_id}", response_model=TestResponse)
-async def get_test(test_id: str, db: AsyncSession = Depends(get_db)):
-    return await TestService.get_test_by_id(test_id, db, include_answers=False)
+async def get_test(
+    test_id: str, 
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    include_answers = (current_user.role != "student")
+    return await TestService.get_test_by_id(test_id, db, include_answers=include_answers)
 
 @router.get("/{test_id}/attempts", response_model=List[TestAttemptResponse])
 async def get_test_attempts(

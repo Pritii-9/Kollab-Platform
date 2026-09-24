@@ -1,4 +1,5 @@
 import random
+import secrets
 from datetime import datetime, timedelta, timezone
 from fastapi import HTTPException, status
 from sqlalchemy import select, delete
@@ -8,6 +9,7 @@ from models.user import User, OTPVerification
 from schemas.auth import RegisterStep1, RegisterStep2, LoginCredentials, UserResponse
 from utils.jwt import get_password_hash, verify_password, create_access_token
 from utils.email import send_otp_email
+from config import settings
 
 class AuthService:
     @staticmethod
@@ -21,7 +23,7 @@ class AuthService:
             )
 
         # Generate 6-digit OTP
-        otp_code = f"{random.randint(100000, 999999)}"
+        otp_code = f"{secrets.randbelow(900000) + 100000}"
         expires_at = datetime.now(timezone.utc) + timedelta(minutes=10)
 
         # Delete any old OTP for this email
@@ -50,12 +52,26 @@ class AuthService:
         )
         otp_entry = result.scalars().first()
 
-        # In development, accept 123456 or correct otp
-        if not otp_entry and data.otp != "123456":
+        # Dev-only bypass — NEVER active in production
+        is_dev_bypass = (
+            settings.ENVIRONMENT == "development"
+            and data.otp == "123456"
+        )
+        if not otp_entry and not is_dev_bypass:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Invalid verification code or code expired"
             )
+        
+        if otp_entry and otp_entry.expires_at.replace(tzinfo=timezone.utc) < datetime.now(timezone.utc):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Verification code has expired"
+            )
+            
+        if otp_entry:
+            await db.execute(delete(OTPVerification).filter(OTPVerification.id == otp_entry.id))
+            await db.commit()
 
         # Create new student user
         pwd_hash = get_password_hash(data.password)

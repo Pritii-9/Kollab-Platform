@@ -34,7 +34,7 @@ export default function Login() {
   const [regEmail, setRegEmail] = useState('')
   const [regDept, setRegDept] = useState(DEPARTMENTS[0])
   const [regYear, setRegYear] = useState('4')
-  const [regBatch, setRegBatch] = useState('CSE Batch B')
+  const [regBatch, setRegBatch] = useState('Batch A')
   const [regRoll, setRegRoll] = useState('')
 
   // Step 2 OTP & Password
@@ -320,9 +320,9 @@ export default function Login() {
                         value={regBatch}
                         onChange={setRegBatch}
                         options={[
-                          { value: 'CSE Batch A', label: 'CSE Batch A' },
-                          { value: 'CSE Batch B', label: 'CSE Batch B' },
-                          { value: 'CSE Batch C', label: 'CSE Batch C' }
+                          { value: 'Batch A', label: 'Batch A' },
+                          { value: 'Batch B', label: 'Batch B' },
+                          { value: 'Batch C', label: 'Batch C' }
                         ]}
                         className="w-full"
                       />
@@ -348,7 +348,7 @@ export default function Login() {
                           email: regEmail,
                           department: regDept,
                           year: regYear,
-                          batch: regBatch,
+                          batch: `${regDept} ${regBatch}`,
                           rollNumber: regRoll
                         })
                         setRegStep(2)
@@ -467,7 +467,7 @@ export default function Login() {
                             email: regEmail,
                             department: regDept,
                             year: regYear,
-                            batch: regBatch,
+                            batch: `${regDept} ${regBatch}`,
                             rollNumber: regRoll
                           })
                           login(response.user, response.access_token)

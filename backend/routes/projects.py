@@ -221,7 +221,12 @@ async def create_task(
     )
 
 @router.put("/tasks/{task_id}", response_model=TaskSchema)
-async def update_task(task_id: str, updates: TaskUpdate, db: AsyncSession = Depends(get_db)):
+async def update_task(
+    task_id: str, 
+    updates: TaskUpdate, 
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
     result = await db.execute(select(Task).filter(Task.id == task_id))
     task = result.scalars().first()
     if not task:
@@ -260,7 +265,11 @@ async def update_task(task_id: str, updates: TaskUpdate, db: AsyncSession = Depe
     )
 
 @router.delete("/tasks/{task_id}")
-async def delete_task(task_id: str, db: AsyncSession = Depends(get_db)):
+async def delete_task(
+    task_id: str, 
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
     await db.execute(delete(Task).filter(Task.id == task_id))
     await db.commit()
     return {"status": "success", "message": "Task deleted"}

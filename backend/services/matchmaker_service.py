@@ -93,7 +93,7 @@ class MatchmakerService:
                 "matchPercentage": match_percentage,
                 "matchedSkills": matched_skills,
                 "otherSkills": other_skills[:3],
-                "bio": s.bio or "Active student contributor.",
+                "bio": s.bio or "",
                 "github": s.github or "",
                 "linkedin": s.linkedin or "",
                 "reason": f"High {match_percentage}% compatibility based on {len(matched_skills)} target skill matches and {s.trust_score} trust score."
