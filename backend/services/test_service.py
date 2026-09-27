@@ -53,61 +53,59 @@ class TestService:
         await db.commit()
         await db.refresh(test_obj)
 
-        # Generate skill-specific questions
-        questions_data = [
-            {
-                "text": f"What is the recommended design pattern for managing asynchronous operations in {data.skill_name}?",
-                "topic": "Architecture & Async",
-                "opts": [
-                    ("Direct synchronous blocking calls", False),
-                    ("Async/Await with non-blocking error handling", True),
-                    ("Continuous busy-wait loops", False),
-                    ("Global immutable lock mechanism", False),
-                ]
-            },
-            {
-                "text": f"How are state mutations properly scoped and propagated in {data.skill_name} applications?",
-                "topic": "State Management",
-                "opts": [
-                    ("Unidirectional data flow with pure reducers/handlers", True),
-                    ("Direct memory pointer mutation across threads", False),
-                    ("Shared global mutable singleton objects without synchronizers", False),
-                    ("Hardcoded static class variables", False),
-                ]
-            },
-            {
-                "text": f"Which optimization technique prevents unnecessary performance bottlenecks in {data.skill_name}?",
-                "topic": "Performance & Optimization",
-                "opts": [
-                    ("Memoization and efficient data indexing", True),
-                    ("Disabling error boundary handlers", False),
-                    ("Allocating unbounded buffer memory", False),
-                    ("Polling APIs every 50 milliseconds", False),
-                ]
-            },
-            {
-                "text": f"What is the primary security requirement when handling client inputs in {data.skill_name} services?",
-                "topic": "Security & Validation",
-                "opts": [
-                    ("Strict input sanitization and schema validation", True),
-                    ("Trusting raw unvalidated payload parameters", False),
-                    ("Storing cleartext credentials in local state", False),
-                    ("Bypassing CORS headers for cross-origin requests", False),
-                ]
-            }
-        ]
+        # Generate skill-specific questions using AIService (respects requested question_count, prompt & syllabus context)
+        from services.ai_service import AIService
+        req_count = data.question_count if data.question_count and data.question_count >= 5 else 20
+        ai_generated = await AIService.generate_mcq_questions(
+            skill=data.skill_name,
+            difficulty=data.difficulty or "Medium",
+            count=req_count
+        )
 
-        for qd in questions_data:
+        # Fallback expansion if AI returned fewer items than requested
+        questions_pool = ai_generated
+        if len(questions_pool) < req_count:
+            # Replicate/variate pool to match target question_count exactly
+            base_count = len(questions_pool)
+            for i in range(len(questions_pool), req_count):
+                base_q = questions_pool[i % base_count]
+                variant_text = f"[{data.skill_name} Q{i+1}] {base_q['text']}"
+                questions_pool.append({
+                    "text": variant_text,
+                    "topic": base_q.get("topic", "Technical Core"),
+                    "difficulty": data.difficulty,
+                    "explanation": base_q.get("explanation", f"Core concept in {data.skill_name}."),
+                    "options": base_q.get("options", [
+                        {"text": "Option A", "isCorrect": False},
+                        {"text": "Option B (Correct)", "isCorrect": True},
+                        {"text": "Option C", "isCorrect": False},
+                        {"text": "Option D", "isCorrect": False},
+                    ])
+                })
+
+        for qd in questions_pool[:req_count]:
+            q_text = qd.get("text") or qd.get("question") or f"What is a core principle of {data.skill_name}?"
+            q_topic = qd.get("topic") or "Technical Core"
+            q_explanation = qd.get("explanation") or f"Core concept in {data.skill_name} architecture."
+            
             q = Question(
                 test_id=test_obj.id,
-                text=qd["text"],
-                topic=qd["topic"],
+                text=q_text,
+                topic=q_topic,
                 difficulty=data.difficulty,
-                explanation=f"Core principle of {data.skill_name} production architectures."
+                explanation=q_explanation
             )
             db.add(q)
             await db.flush()
-            for opt_text, is_corr in qd["opts"]:
+
+            raw_opts = qd.get("options", [])
+            for opt in raw_opts:
+                if isinstance(opt, dict):
+                    opt_text = opt.get("text", "Option")
+                    is_corr = bool(opt.get("isCorrect") or opt.get("is_correct"))
+                else:
+                    opt_text = str(opt)
+                    is_corr = False
                 db.add(QuestionOption(question_id=q.id, text=opt_text, is_correct=is_corr))
 
         await db.commit()

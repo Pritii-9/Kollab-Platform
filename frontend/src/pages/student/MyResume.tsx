@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { useAuthStore } from '@/store/authStore'
 import {
   FileText, UploadCloud, CheckCircle2, Eye, Star, Plus,
-  Download, Sparkles, Loader2, X, Shield, ArrowRight, Trash2, AlertTriangle, Layers
+  Download, Wand2, Loader2, X, Shield, ArrowRight, Trash2, AlertTriangle, Layers
 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import apiClient from '@/api/client'
@@ -58,8 +58,8 @@ export default function MyResume() {
       
       const prim = resolvedList.find(r => r.is_primary) || resolvedList[0] || null
       setPrimaryResume(prim)
-      if (prim?.url) {
-        useAuthStore.getState().updateUser({ resumeUrl: prim.url })
+      if (prim?.url && (useAuthStore.getState().user as any)) {
+        useAuthStore.getState().updateUser({ resume_url: prim.url } as any)
       }
     } catch (err: any) {
       console.error('Failed to load resumes:', err)
@@ -169,7 +169,7 @@ export default function MyResume() {
   return (
     <div className="space-y-6">
       {/* Header Banner */}
-      <div className="p-6 rounded-2xl bg-gradient-to-r from-indigo-900/50 via-[#0f172a] to-[#080d18] border border-indigo-500/20 shadow-xl flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+      <div className="p-6 rounded-2xl bg-[#0e1526] border border-[#1a2438] hover:border-[#2a3854] shadow-xl flex flex-col md:flex-row items-start md:items-center justify-between gap-4 transition-all">
         <div>
           <div className="flex items-center gap-2 mb-1">
             <span className="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 uppercase tracking-wider">
@@ -178,7 +178,7 @@ export default function MyResume() {
             <span className="text-xs text-slate-400">Tailored Placement Dossiers</span>
           </div>
           <h2 className="text-2xl font-extrabold text-white">Placement Resume Dossier</h2>
-          <p className="text-xs text-indigo-200 mt-1">
+          <p className="text-xs text-slate-400 mt-1">
             Upload and manage multiple resumes (Full Stack, Backend, Data Science), switch active placement resume, and preview anytime.
           </p>
         </div>
@@ -186,92 +186,93 @@ export default function MyResume() {
         <div className="flex items-center gap-2 shrink-0">
           <button
             onClick={() => setUploadModalOpen(true)}
-            className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 font-extrabold text-white text-xs shadow-lg shadow-indigo-600/25 flex items-center gap-2 transition-all cursor-pointer"
+            className="px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 font-extrabold text-white text-xs shadow-lg shadow-indigo-600/20 flex items-center gap-2 transition-all cursor-pointer"
           >
             <Plus size={16} /> Upload New Resume
           </button>
         </div>
       </div>
 
-      {/* Main Grid — 2 Columns */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+      {/* Main Grid — 2 Equal Columns (6:6) */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
 
-        {/* ── Left Column: Active Spotlight & Resume List (7 cols) ── */}
-        <div className="lg:col-span-7 space-y-6">
+        {/* ── Left Column: Active Spotlight & Resume List (6 cols) ── */}
+        <div className="lg:col-span-6 space-y-6 flex flex-col justify-between">
+          <div className="space-y-6">
+            {/* Active Primary Resume Spotlight Card */}
+            {primaryResume ? (
+              <div className="p-6 rounded-2xl bg-[#0f172a] border border-indigo-500/30 shadow-xl space-y-5 relative overflow-hidden">
+                <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/5 rounded-full blur-2xl pointer-events-none" />
 
-          {/* Active Primary Resume Spotlight Card */}
-          {primaryResume ? (
-            <div className="p-6 rounded-2xl bg-[#0f172a] border border-indigo-500/30 shadow-xl space-y-5 relative overflow-hidden">
-              <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/5 rounded-full blur-2xl pointer-events-none" />
-
-              <div className="flex items-center justify-between">
-                <span className="px-3 py-1 rounded-full text-xs font-bold bg-amber-500/10 text-amber-400 border border-amber-500/30 flex items-center gap-1.5 shadow-sm">
-                  <Star size={14} className="fill-amber-400 text-amber-400" /> Active Placement Resume
-                </span>
-                <span className="text-xs font-medium text-slate-400">{primaryResume.date}</span>
-              </div>
-
-              <div className="flex items-start gap-4">
-                <div className="p-3.5 rounded-2xl bg-indigo-600/10 text-indigo-400 border border-indigo-500/20 shrink-0">
-                  <FileText size={28} />
+                <div className="flex items-center justify-between">
+                  <span className="px-3 py-1 rounded-full text-xs font-bold bg-amber-500/10 text-amber-400 border border-amber-500/30 flex items-center gap-1.5 shadow-sm">
+                    <Star size={14} className="fill-amber-400 text-amber-400" /> Active Placement Resume
+                  </span>
+                  <span className="text-xs font-medium text-slate-400">{primaryResume.date}</span>
                 </div>
-                <div className="flex-1 min-w-0">
-                  <h3 className="font-extrabold text-white text-lg truncate">{primaryResume.title || primaryResume.name}</h3>
-                  <p className="text-xs text-slate-400 mt-0.5">{primaryResume.name} · {primaryResume.size}</p>
-                  <div className="flex items-center gap-2 mt-2">
-                    <span className="px-2.5 py-0.5 rounded-md bg-[#080d18] border border-[#1e293b] text-[10px] font-bold text-indigo-300">
-                      Primary Dossier
-                    </span>
-                    <span className="px-2.5 py-0.5 rounded-md bg-emerald-500/10 border border-emerald-500/20 text-[10px] font-bold text-emerald-400 flex items-center gap-1">
-                      <Shield size={10} /> Recruiter Trust Score: {user?.trustScore ?? 92}
-                    </span>
+
+                <div className="flex items-start gap-4">
+                  <div className="p-3.5 rounded-2xl bg-indigo-600/10 text-indigo-400 border border-indigo-500/20 shrink-0">
+                    <FileText size={28} />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <h3 className="font-extrabold text-white text-lg truncate">{primaryResume.title || primaryResume.name}</h3>
+                    <p className="text-xs text-slate-400 mt-0.5">{primaryResume.name} · {primaryResume.size}</p>
+                    <div className="flex items-center gap-2 mt-2">
+                      <span className="px-2.5 py-0.5 rounded-md bg-[#080d18] border border-[#1e293b] text-[10px] font-bold text-indigo-300">
+                        Primary Dossier
+                      </span>
+                      <span className="px-2.5 py-0.5 rounded-md bg-emerald-500/10 border border-emerald-500/20 text-[10px] font-bold text-emerald-400 flex items-center gap-1">
+                        <Shield size={10} /> Recruiter Trust Score: {user?.trustScore ?? 92}
+                      </span>
+                    </div>
                   </div>
                 </div>
-              </div>
 
-              {/* Action Buttons */}
-              <div className="flex items-center gap-3 pt-3 border-t border-[#1e293b]">
-                <button
-                  onClick={() => openPreview(primaryResume.title || primaryResume.name, primaryResume.url)}
-                  className="flex-1 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold shadow-lg shadow-indigo-600/20 flex items-center justify-center gap-2 transition-all cursor-pointer"
-                >
-                  <Eye size={16} /> Preview PDF
-                </button>
-                <button
-                  onClick={() => handleDownload(primaryResume.title || primaryResume.name, primaryResume.url)}
-                  className="flex-1 py-2.5 rounded-xl bg-[#080d18] border border-[#1e293b] hover:border-slate-600 text-slate-200 hover:text-white text-xs font-bold flex items-center justify-center gap-2 transition-all cursor-pointer"
-                >
-                  <Download size={16} /> Download
-                </button>
-                <button
-                  onClick={() => setDeleteModal({ id: primaryResume.id, name: primaryResume.title || primaryResume.name })}
-                  title="Remove Resume"
-                  className="p-2.5 rounded-xl bg-[#080d18] hover:bg-rose-500/20 border border-[#1e293b] hover:border-rose-500/40 text-slate-400 hover:text-rose-400 transition-all cursor-pointer shrink-0"
-                >
-                  <Trash2 size={16} />
-                </button>
+                {/* Action Buttons */}
+                <div className="flex items-center gap-3 pt-3 border-t border-[#1e293b]">
+                  <button
+                    onClick={() => openPreview(primaryResume.title || primaryResume.name, primaryResume.url)}
+                    className="flex-1 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold shadow-lg shadow-indigo-600/20 flex items-center justify-center gap-2 transition-all cursor-pointer"
+                  >
+                    <Eye size={16} /> Preview PDF
+                  </button>
+                  <button
+                    onClick={() => handleDownload(primaryResume.title || primaryResume.name, primaryResume.url)}
+                    className="flex-1 py-2.5 rounded-xl bg-[#080d18] border border-[#1e293b] hover:border-slate-600 text-slate-200 hover:text-white text-xs font-bold flex items-center justify-center gap-2 transition-all cursor-pointer"
+                  >
+                    <Download size={16} /> Download
+                  </button>
+                  <button
+                    onClick={() => setDeleteModal({ id: primaryResume.id, name: primaryResume.title || primaryResume.name })}
+                    title="Remove Resume"
+                    className="p-2.5 rounded-xl bg-[#080d18] hover:bg-rose-500/20 border border-[#1e293b] hover:border-rose-500/40 text-slate-400 hover:text-rose-400 transition-all cursor-pointer shrink-0"
+                  >
+                    <Trash2 size={16} />
+                  </button>
+                </div>
               </div>
-            </div>
-          ) : (
-            /* Upload Dropzone if no resumes */
-            <div
-              onClick={() => setUploadModalOpen(true)}
-              className="p-10 rounded-2xl bg-[#0f172a] border-2 border-dashed border-[#1e293b] hover:border-indigo-500/50 transition-all text-center space-y-4 cursor-pointer"
-            >
-              <div className="w-14 h-14 rounded-2xl bg-indigo-600/10 text-indigo-400 flex items-center justify-center mx-auto border border-indigo-500/20">
-                <UploadCloud size={28} />
+            ) : (
+              /* Upload Dropzone if no resumes */
+              <div
+                onClick={() => setUploadModalOpen(true)}
+                className="p-10 rounded-2xl bg-[#0f172a] border-2 border-dashed border-[#1e293b] hover:border-indigo-500/50 transition-all text-center space-y-4 cursor-pointer"
+              >
+                <div className="w-14 h-14 rounded-2xl bg-indigo-600/10 text-indigo-400 flex items-center justify-center mx-auto border border-indigo-500/20">
+                  <UploadCloud size={28} />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-white">Upload your Placement Resume</h3>
+                  <p className="text-xs text-slate-400 mt-1 max-w-sm mx-auto">
+                    Click here to upload your first resume PDF (up to 10 MB).
+                  </p>
+                </div>
               </div>
-              <div>
-                <h3 className="text-base font-bold text-white">Upload your Placement Resume</h3>
-                <p className="text-xs text-slate-400 mt-1 max-w-sm mx-auto">
-                  Click here to upload your first resume PDF (up to 10 MB).
-                </p>
-              </div>
-            </div>
-          )}
+            )}
+          </div>
 
           {/* ── Multiple Resumes Vault List ── */}
-          <div className="p-6 rounded-2xl bg-[#0f172a] border border-[#1e293b] shadow-xl space-y-4">
+          <div className="p-6 rounded-2xl bg-[#0f172a] border border-[#1e293b] shadow-xl space-y-4 mt-6">
             <div className="flex items-center justify-between">
               <h3 className="text-base font-bold text-white flex items-center gap-2">
                 <Layers size={18} className="text-indigo-400" /> My Resumes Vault
@@ -360,14 +361,13 @@ export default function MyResume() {
           </div>
         </div>
 
-        {/* ── Right Column: AI Verified Highlights & Tools (5 cols) ── */}
-        <div className="lg:col-span-5 space-y-6">
-
-          {/* AI Verified Resume Highlights */}
+        {/* ── Right Column: AI Verified Highlights & Tools (6 cols) ── */}
+        <div className="lg:col-span-6 space-y-6 flex flex-col justify-between">
+          {/* Verified Resume Highlights */}
           <div className="p-6 rounded-2xl bg-[#0f172a] border border-[#1e293b] shadow-xl space-y-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2 text-indigo-400 font-extrabold text-xs uppercase tracking-wider">
-                <Sparkles size={16} /> AI Verified Placement Telemetry
+                <CheckCircle2 size={16} /> Placement Dossier Summary
               </div>
               <span className="text-[10px] text-slate-500 font-semibold">Proctored Audit</span>
             </div>
@@ -378,7 +378,7 @@ export default function MyResume() {
                 `Primary Dossier: ${primaryResume?.title || primaryResume?.name || 'Primary Placement PDF'}`,
                 `Proctored Recruiter Trust Score: ${user?.trustScore ?? 92}/100`,
                 'Verified Skill Badges attached (React, Node.js, Python, FastAPI)',
-                'Collaborative Kanban project telemetry linked'
+                'Collaborative project activity linked'
               ].map((h, i) => (
                 <li key={i} className="flex items-start gap-2.5 p-3 rounded-xl bg-[#080d18] border border-[#1e293b] text-xs text-slate-200 leading-relaxed">
                   <CheckCircle2 size={16} className="text-emerald-400 shrink-0 mt-0.5" />
@@ -388,20 +388,24 @@ export default function MyResume() {
             </ul>
           </div>
 
-          {/* AI Resume Action Bullets Launcher Card */}
-          <div className="p-6 rounded-2xl bg-gradient-to-br from-indigo-900/30 to-[#0f172a] border border-indigo-500/20 shadow-xl space-y-3">
-            <div className="flex items-center gap-2 text-indigo-400 font-bold text-xs uppercase tracking-wider">
-              <Sparkles size={16} /> AI Resume Bullet Enhancer
+          {/* Resume Action Bullets Launcher Card - Stretches flex-1 to fill height */}
+          <div className="p-6 rounded-2xl bg-[#0e1526] border border-[#1a2438] hover:border-[#2a3854] shadow-xl space-y-3 transition-all flex-1 flex flex-col justify-between mt-6">
+            <div>
+              <div className="flex items-center gap-2 text-indigo-400 font-bold text-xs uppercase tracking-wider mb-2">
+                <FileText size={15} /> Resume Bullet Point Enhancer
+              </div>
+              <p className="text-xs text-slate-300 leading-relaxed">
+                Transform your project accomplishments into structured action bullet points optimized for tech recruiters.
+              </p>
             </div>
-            <p className="text-xs text-slate-300 leading-relaxed">
-              Transform your project accomplishments into STAR-formatted action bullet points optimized for Tier 1 recruiters.
-            </p>
-            <a
-              href="/student/ai-tools"
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs shadow-md shadow-indigo-600/20 transition-all"
-            >
-              Open AI Resume Tools <ArrowRight size={14} />
-            </a>
+            <div className="pt-4">
+              <a
+                href="/student/ai-tools"
+                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs shadow-md shadow-indigo-600/20 transition-all cursor-pointer"
+              >
+                Open Resume Tools <ArrowRight size={14} />
+              </a>
+            </div>
           </div>
 
         </div>
@@ -464,7 +468,7 @@ export default function MyResume() {
                 <div className="space-y-1.5 pt-1">
                   <div className="w-full h-2 rounded-full bg-slate-800 overflow-hidden">
                     <div
-                      className="h-full bg-gradient-to-r from-indigo-500 to-violet-500 transition-all duration-300"
+                      className="h-full bg-indigo-500 transition-all duration-300"
                       style={{ width: `${uploadProgress}%` }}
                     />
                   </div>

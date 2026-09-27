@@ -12,7 +12,7 @@ class Batch(BaseModel):
     section: Mapped[str] = mapped_column(String(50), nullable=False)
     coordinator: Mapped[str] = mapped_column(String(100), default="Prof. Sarah Jenkins")
     academic_year: Mapped[str] = mapped_column(String(50), default="2025-2026")
-    total_students: Mapped[int] = mapped_column(Integer, default=40)
+    total_students: Mapped[int] = mapped_column(Integer, default=0)
     skill_verified: Mapped[int] = mapped_column(Integer, default=0)
     active_projects: Mapped[int] = mapped_column(Integer, default=0)
     placement_ready: Mapped[int] = mapped_column(Integer, default=0)

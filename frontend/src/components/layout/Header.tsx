@@ -39,8 +39,12 @@ export function Header({ onMobileMenuToggle }: HeaderProps) {
     if (path.includes('/coordinator/batches')) return 'Batch Management'
     if (path.includes('/coordinator/students')) return 'Students List'
     if (path.includes('/coordinator/assign-test')) return 'Assign Proctored Test'
+    if (path.includes('/coordinator/test-results')) return 'Test Results Matrix'
     if (path.includes('/coordinator/reports')) return 'Placement Reports'
     if (path.includes('/coordinator/announcements')) return 'Announcements'
+    if (path.includes('/coordinator/profile')) return 'Coordinator Profile'
+    if (path.includes('/coordinator/settings')) return 'Account Settings'
+    if (path.includes('/coordinator/notifications')) return 'Notifications & Alerts'
     if (path.includes('/student/dashboard')) return 'Student Dashboard'
     if (path.includes('/student/profile')) return 'My Profile'
     if (path.includes('/student/resume')) return 'My Resume'
@@ -89,7 +93,7 @@ export function Header({ onMobileMenuToggle }: HeaderProps) {
 
         {/* Notifications */}
         <button
-          onClick={() => navigate(user?.role === 'coordinator' ? '#' : '/student/notifications')}
+          onClick={() => navigate(user?.role === 'coordinator' ? '/coordinator/notifications' : '/student/notifications')}
           className="relative p-2 rounded-xl text-slate-400 hover:text-white hover:bg-[#1e293b] transition-colors"
         >
           <Bell size={20} />
@@ -120,7 +124,7 @@ export function Header({ onMobileMenuToggle }: HeaderProps) {
               <button
                 onClick={() => {
                   setDropdownOpen(false)
-                  navigate(user?.role === 'coordinator' ? '#' : '/student/profile')
+                  navigate(user?.role === 'coordinator' ? '/coordinator/profile' : '/student/profile')
                 }}
                 className="w-full flex items-center gap-2 px-4 py-2 text-sm text-slate-300 hover:bg-[#1e293b] hover:text-white"
               >
@@ -129,7 +133,7 @@ export function Header({ onMobileMenuToggle }: HeaderProps) {
               <button
                 onClick={() => {
                   setDropdownOpen(false)
-                  navigate(user?.role === 'coordinator' ? '#' : '/student/settings')
+                  navigate(user?.role === 'coordinator' ? '/coordinator/settings' : '/student/settings')
                 }}
                 className="w-full flex items-center gap-2 px-4 py-2 text-sm text-slate-300 hover:bg-[#1e293b] hover:text-white"
               >

@@ -18,6 +18,11 @@ export const batchesApi = {
     return res.data
   },
 
+  updateBatch: async (id: string, data: Partial<Batch>): Promise<Batch> => {
+    const res = await apiClient.put<Batch>(`/batches/${id}`, data)
+    return res.data
+  },
+
   deleteBatch: async (id: string): Promise<{ message: string }> => {
     const res = await apiClient.delete<{ message: string }>(`/batches/${id}`)
     return res.data

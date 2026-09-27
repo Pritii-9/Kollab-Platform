@@ -103,37 +103,35 @@ export default function Login() {
   const strength = getPasswordStrength(regPassword)
 
   return (
-    <div className="min-h-screen bg-[#0a0f1e] text-slate-100 flex flex-col md:flex-row">
+    <div className="min-h-screen bg-[#090d16] text-slate-100 flex flex-col md:flex-row">
       {/* Left 40% Panel */}
-      <div className="md:w-5/12 bg-[#080d18] border-r border-[#1e293b] p-8 md:p-12 flex flex-col justify-between relative overflow-hidden">
-        <div className="absolute inset-0 bg-[radial-gradient(#1e293b_1px,transparent_1px)] [background-size:16px_16px] opacity-30 pointer-events-none" />
-
-        <div className="relative z-10">
+      <div className="md:w-5/12 bg-[#060911] border-r border-[#1a2438] p-8 md:p-12 flex flex-col justify-between relative">
+        <div>
           <div className="flex items-center gap-3 mb-10">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-600 to-violet-500 flex items-center justify-center text-white font-extrabold shadow-lg shadow-indigo-600/30">
-              <GraduationCap size={24} />
+            <div className="w-10 h-10 rounded-xl bg-indigo-600 flex items-center justify-center text-white font-extrabold shadow-md shadow-indigo-600/20">
+              <GraduationCap size={22} />
             </div>
-            <span className="text-2xl font-extrabold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-white via-slate-200 to-indigo-300">
+            <span className="text-xl font-extrabold tracking-tight text-white">
               Kollab
             </span>
           </div>
 
-          <h1 className="text-3xl md:text-4xl font-extrabold tracking-tight text-white leading-tight mb-4">
+          <h1 className="text-page-title text-2xl md:text-3xl leading-tight mb-4">
             From Year 1 to Placement — All in One Place
           </h1>
-          <p className="text-slate-400 text-sm mb-8 leading-relaxed">
-            Empower your degree journey with skill verification, AI team matching, proctored tests, and placement tracking.
+          <p className="text-body-main text-slate-400 mb-8 leading-relaxed">
+            Empower your degree journey with skill verification, peer project collaboration, proctored assessments, and placement tracking.
           </p>
 
           <div className="space-y-4">
             {[
               '4-Year Automated Student Progression & Badging',
-              'Proctored Skill MCQ Tests with Tab-Switch Guard',
-              'AI-Powered Teammate Matchmaking & Kanban Workspace'
+              'Proctored Skill Assessments with Integrity Checks',
+              'Collaborative Student Teammate Matchmaking'
             ].map((bullet, i) => (
               <div key={i} className="flex items-start gap-3">
-                <div className="p-1 rounded-full bg-emerald-500/10 text-emerald-400 mt-0.5">
-                  <CheckCircle2 size={16} />
+                <div className="p-1 rounded-full bg-emerald-500/10 text-emerald-400 mt-0.5 border border-emerald-500/20">
+                  <CheckCircle2 size={15} />
                 </div>
                 <span className="text-xs font-medium text-slate-300">{bullet}</span>
               </div>
@@ -141,18 +139,18 @@ export default function Login() {
           </div>
         </div>
 
-        <div className="relative z-10 pt-10 border-t border-[#1e293b] mt-10 grid grid-cols-3 gap-4 text-center">
+        <div className="pt-8 border-t border-[#1a2438] mt-8 grid grid-cols-3 gap-4 text-center">
           <div>
-            <h4 className="text-xl font-extrabold text-white">CSE Dept</h4>
-            <span className="text-[11px] text-slate-500">Batches A, B, C</span>
+            <h4 className="text-section-title">CSE Dept</h4>
+            <span className="text-caption-muted">Batches A, B, C</span>
           </div>
           <div>
-            <h4 className="text-xl font-extrabold text-white">Year 4</h4>
-            <span className="text-[11px] text-slate-500">Academic Cohort</span>
+            <h4 className="text-section-title">Year 4</h4>
+            <span className="text-caption-muted">Academic Cohort</span>
           </div>
           <div>
-            <h4 className="text-xl font-extrabold text-emerald-400">92%</h4>
-            <span className="text-[11px] text-slate-500">Placement Readiness</span>
+            <h4 className="text-section-title text-emerald-400">92%</h4>
+            <span className="text-caption-muted">Placement Rate</span>
           </div>
         </div>
       </div>
@@ -253,16 +251,7 @@ export default function Login() {
                 </div>
               </div>
 
-              <button
-                type="button"
-                onClick={() => {
-                  setLoginEmail('priti@college.edu')
-                  setLoginPassword('password123')
-                }}
-                className="w-full py-2.5 rounded-xl bg-[#0f172a] border border-[#1e293b] hover:border-slate-600 text-slate-300 font-medium text-xs flex items-center justify-center gap-2 transition-colors"
-              >
-                <Code size={16} /> Quick Sign In as Priti Jadhav (CSE Batch B)
-              </button>
+              {/* Quick sign-in removed */}
             </form>
           ) : (
             <div className="space-y-4">

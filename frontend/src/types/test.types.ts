@@ -18,6 +18,9 @@ export interface Test {
   title: string
   skillName: string
   difficulty: 'Easy' | 'Medium' | 'Hard' | 'Mixed'
+  questionCount?: number
+  prompt?: string
+  context?: string
   questions: Question[]
   timeLimit: number        // in minutes
   attempts: number
@@ -27,7 +30,7 @@ export interface Test {
     tabDetection: boolean
     fullscreenLock: boolean
   }
-  assignedTo: 'batch' | 'year' | 'individual'
+  assignedTo: 'branch' | 'batch' | 'year' | 'individual'
   targetBatch?: string
   targetYear?: number
   targetStudents?: string[]

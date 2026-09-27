@@ -49,7 +49,7 @@ export default function Analytics() {
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
           <h2 className="text-xl font-extrabold text-white">Performance Analytics</h2>
-          <p className="text-xs text-slate-400 mt-0.5">Deep-dive performance telemetry, test score trends, and skill breakdown</p>
+          <p className="text-xs text-slate-400 mt-0.5">Detailed performance insights, test score trends, and skill breakdown</p>
         </div>
         <span className="px-3 py-1.5 rounded-xl bg-indigo-600/10 border border-indigo-500/20 text-indigo-400 text-xs font-semibold flex items-center gap-1.5">
           <TrendingUp size={14} /> Updated Today
@@ -91,7 +91,7 @@ export default function Analytics() {
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         <div className="lg:col-span-12 p-6 rounded-2xl bg-[#0f172a] border border-[#1e293b] shadow-xl space-y-4">
           <div>
-            <h3 className="text-base font-bold text-white">Verification & Activity Telemetry (60 Days)</h3>
+            <h3 className="text-base font-bold text-white">Verification & Activity Trends (60 Days)</h3>
             <p className="text-xs text-slate-400 mt-0.5">Track your test completions, project activity, and profile updates over time</p>
           </div>
           <ActivityAreaChart data={[]} height={260} />
@@ -129,7 +129,7 @@ export default function Analytics() {
           </div>
         ) : (
           <div className="space-y-3 text-slate-400 text-xs p-4 bg-[#080d18] rounded-xl border border-[#1e293b] text-center">
-            No skill progress telemetry available. Complete a proctored assessment to record baseline skill metrics.
+            No skill progress recorded yet. Complete an assessment to record baseline skill metrics.
           </div>
         )}
       </div>

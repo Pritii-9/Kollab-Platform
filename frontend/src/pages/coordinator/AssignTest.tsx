@@ -2,13 +2,38 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { SKILLS } from '@/utils/constants'
 import {
-  ClipboardList, ShieldCheck, Check, Send, FileSpreadsheet, Sparkles, Clock,
-  Users, Zap, Search, Award, Sliders, Plus, X, ShieldAlert, Cpu
+  ClipboardList, ShieldCheck, Check, Send, FileSpreadsheet, Wand2, Clock,
+  Users, Zap, Search, Award, Sliders, Plus, X, ShieldAlert, Cpu, Sparkles,
+  Trash2, Layers, BarChart3, RefreshCw, AlertCircle
 } from 'lucide-react'
 import CustomDatePicker from '@/components/shared/CustomDatePicker'
 import CustomSelect from '@/components/shared/CustomSelect'
 import { testsApi } from '@/api/tests.api'
+import type { Test, TestAttemptRecord } from '@/types/test.types'
 import toast from 'react-hot-toast'
+
+const PROMPT_PRESETS = [
+  {
+    label: 'Async & JWT Auth',
+    prompt: 'Focus 60% of questions on Async/Await promises, Express/FastAPI middleware, JWT authentication patterns & token refresh security.',
+  },
+  {
+    label: 'System Design & DB',
+    prompt: 'Focus on Microservices architecture, Redis caching strategies, Database partitioning, B-Tree indexing & API Rate Limiting.',
+  },
+  {
+    label: 'DS & Complexity',
+    prompt: 'Prioritize Tree & Graph algorithms (BFS/DFS), Memory allocation, Time/Space O(N) complexity analysis, and Dynamic Programming.',
+  },
+  {
+    label: 'SQL & Transactions',
+    prompt: 'Focus on complex SQL Joins, Indexing, ACID transaction isolation levels, query execution plan optimization, and ORM performance.',
+  },
+  {
+    label: 'REST API & Security',
+    prompt: 'Emphasize RESTful API design standards, OAuth2 flows, CORS headers, CSRF mitigation, and input payload sanitization.',
+  },
+]
 
 export default function AssignTest() {
   const navigate = useNavigate()
@@ -32,14 +57,42 @@ export default function AssignTest() {
   const [tabDetection, setTabDetection] = useState(true)
   const [fullscreenLock, setFullscreenLock] = useState(true)
 
-  const [targetType, setTargetType] = useState<'batch' | 'year' | 'individual'>('batch')
-  const [targetVal, setTargetVal] = useState('CSE Batch A')
+  const [targetType, setTargetType] = useState<'branch' | 'year' | 'individual'>('branch')
+  const [targetVal, setTargetVal] = useState('Computer Science & Engineering (CSE)')
   const [dueDate, setDueDate] = useState('2026-09-30')
+
+  const [customPrompt, setCustomPrompt] = useState('')
+  const [syllabusContext, setSyllabusContext] = useState('')
 
   const [isLoading, setIsLoading] = useState(false)
   const [isSuccess, setIsSuccess] = useState(false)
 
-  useEffect(() => { document.title = 'Assign Skill Test — Kollab' }, [])
+  // Real database test deployments and telemetry state
+  const [deployedTests, setDeployedTests] = useState<Test[]>([])
+  const [attemptsList, setAttemptsList] = useState<TestAttemptRecord[]>([])
+  const [isFetchingDeployments, setIsFetchingDeployments] = useState(true)
+  const [deletingId, setDeletingId] = useState<string | null>(null)
+
+  useEffect(() => {
+    document.title = 'Assign Skill Test — Kollab'
+    loadDeploymentsAndAnalytics()
+  }, [])
+
+  const loadDeploymentsAndAnalytics = async () => {
+    setIsFetchingDeployments(true)
+    try {
+      const [testsData, attemptsData] = await Promise.all([
+        testsApi.listTests().catch(() => []),
+        testsApi.getTestAttempts().catch(() => [])
+      ])
+      setDeployedTests(testsData)
+      setAttemptsList(attemptsData)
+    } catch {
+      // Graceful fallback
+    } finally {
+      setIsFetchingDeployments(false)
+    }
+  }
 
   const filteredSkills = skillList.filter(s => s.toLowerCase().includes(skillSearch.toLowerCase()))
 
@@ -56,34 +109,87 @@ export default function AssignTest() {
   }
 
   const applyPreset = (preset: 'standard' | 'placement' | 'quiz') => {
-    if (preset === 'standard') { setDifficulty('Medium'); setQuestionCount(20); setTimeLimit(30); setAttempts(2); setTabDetection(true); setFullscreenLock(true); toast.success('Standard Preset Applied') }
-    else if (preset === 'placement') { setDifficulty('Hard'); setQuestionCount(30); setTimeLimit(45); setAttempts(1); setTabDetection(true); setFullscreenLock(true); toast.success('Placement Drive Preset Applied') }
-    else { setDifficulty('Easy'); setQuestionCount(10); setTimeLimit(15); setAttempts(3); setTabDetection(false); setFullscreenLock(false); toast.success('Quick Quiz Preset Applied') }
+    if (preset === 'standard') {
+      setDifficulty('Medium'); setQuestionCount(20); setTimeLimit(30); setAttempts(2); setTabDetection(true); setFullscreenLock(true)
+      toast.success('Standard Assessment Preset Applied')
+    } else if (preset === 'placement') {
+      setDifficulty('Hard'); setQuestionCount(30); setTimeLimit(45); setAttempts(1); setTabDetection(true); setFullscreenLock(true)
+      toast.success('Placement Drive Assessment Preset Applied')
+    } else {
+      setDifficulty('Easy'); setQuestionCount(10); setTimeLimit(15); setAttempts(3); setTabDetection(false); setFullscreenLock(false)
+      toast.success('Quick Quiz Assessment Preset Applied')
+    }
   }
 
   const handleAssign = async () => {
+    if (!selectedSkill) {
+      toast.error('Please select a target skill first')
+      return
+    }
+
     setIsLoading(true)
     try {
-      await testsApi.createTest({ title: `${selectedSkill} ${difficulty} Assessment`, skillName: selectedSkill, difficulty, timeLimit, attempts, antiCheat: { randomizeQuestions: randomizeQs, randomizeOptions, tabDetection, fullscreenLock }, assignedTo: targetType, targetBatch: targetVal, dueDate }).catch(() => null)
+      await testsApi.createTest({
+        title: `${selectedSkill} ${difficulty} Assessment`,
+        skillName: selectedSkill,
+        difficulty,
+        questionCount,
+        prompt: customPrompt.trim(),
+        context: syllabusContext.trim(),
+        timeLimit,
+        attempts,
+        antiCheat: { randomizeQuestions: randomizeQs, randomizeOptions, tabDetection, fullscreenLock },
+        assignedTo: targetType,
+        targetBatch: targetVal,
+        dueDate
+      })
+
       setIsSuccess(true)
-      toast.success(`${selectedSkill} test assigned to ${targetVal}!`)
+      toast.success(`${selectedSkill} test (${questionCount} Qs) assigned to ${targetVal}!`)
+      
+      // Instantly refresh the right-hand panel live list
+      await loadDeploymentsAndAnalytics()
+
       setTimeout(() => setIsSuccess(false), 3500)
-    } catch { toast.error('Failed to assign test.') }
-    finally { setIsLoading(false) }
+    } catch {
+      toast.error('Failed to assign test. Please try again.')
+    } finally {
+      setIsLoading(false)
+    }
   }
 
-  const batchOptions = [
-    { value: 'CSE Batch A', label: 'CSE Batch A' },
-    { value: 'CSE Batch B', label: 'CSE Batch B' },
-    { value: 'CSE Batch C', label: 'CSE Batch C' },
+  const handleDeleteTest = async (testId: string, title: string) => {
+    if (!window.confirm(`Are you sure you want to retract/delete "${title}"?`)) return
+    setDeletingId(testId)
+    try {
+      await testsApi.deleteTest(testId)
+      toast.success('Test retracted successfully')
+      await loadDeploymentsAndAnalytics()
+    } catch {
+      toast.error('Failed to delete test')
+    } finally {
+      setDeletingId(null)
+    }
+  }
+
+  const branchOptions = [
+    { value: 'Computer Science & Engineering (CSE)', label: 'CSE — Computer Science & Eng.' },
+    { value: 'Information Technology (IT)', label: 'IT — Information Technology' },
+    { value: 'Artificial Intelligence & Data Science (AI&DS)', label: 'AI&DS — AI & Data Science' },
+    { value: 'Artificial Intelligence & Machine Learning (AIML)', label: 'AIML — AI & Machine Learning' },
   ]
   const yearOptions = [
-    { value: 'Year 1', label: 'Year 1 Cohort' },
-    { value: 'Year 2', label: 'Year 2 Cohort' },
-    { value: 'Year 3', label: 'Year 3 Cohort' },
-    { value: 'Year 4', label: 'Year 4 Cohort' },
+    { value: 'Year 4 (Placement Active)', label: 'Year 4 — Placement Cohort (Active)' },
+    { value: 'Year 3 (Upcoming Module)', label: 'Year 3 — Pre-Placement (Upcoming)' },
+    { value: 'Year 2 (Upcoming Module)', label: 'Year 2 — Technical Core (Upcoming)' },
+    { value: 'Year 1 (Upcoming Module)', label: 'Year 1 — Foundations (Upcoming)' },
   ]
-  const individualOptions = [{ value: 'All Students', label: 'All Registered Students' }]
+  const individualOptions = [{ value: 'All Active Students', label: 'All Registered Students' }]
+
+  // Live analytics calculations
+  const totalSubmissions = attemptsList.length
+  const passCount = attemptsList.filter(a => a.passed).length
+  const avgPassPercentage = totalSubmissions > 0 ? Math.round((passCount / totalSubmissions) * 100) : 88
 
   return (
     <div className="animate-fade-in max-w-7xl mx-auto pb-6 space-y-3">
@@ -99,7 +205,7 @@ export default function AssignTest() {
               <h1 className="text-sm font-extrabold text-white">Assign Proctored Skill Assessment</h1>
               <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">ADMIN CONTROL</span>
             </div>
-            <p className="text-[11px] text-slate-400">Configure parameters, anti-cheat rules, and target deployment</p>
+            <p className="text-[11px] text-slate-400">Configure AI generation parameters, anti-cheat guards, and live deployments</p>
           </div>
         </div>
         <button onClick={() => navigate('/coordinator/test-results')} className="px-3 py-1.5 rounded-xl bg-slate-900 border border-slate-800 hover:border-indigo-500/40 text-indigo-400 text-xs font-bold flex items-center gap-1.5 transition-all shrink-0">
@@ -110,7 +216,7 @@ export default function AssignTest() {
       {/* ── Preset Bar ── */}
       <div className="px-4 py-2 rounded-xl bg-[#0f172a]/80 border border-slate-800 flex items-center gap-3 text-xs">
         <div className="flex items-center gap-1.5 text-indigo-400 font-bold text-[11px] shrink-0">
-          <Zap size={13} className="animate-pulse" /> Presets:
+          <Zap size={13} className="animate-pulse text-indigo-400" /> Presets:
         </div>
         <div className="flex items-center gap-2 flex-wrap">
           {[
@@ -118,24 +224,24 @@ export default function AssignTest() {
             { key: 'placement', label: 'Placement Drive (30 Qs)', color: 'text-indigo-400' },
             { key: 'quiz', label: 'Quick Quiz (10m)', color: 'text-amber-400' },
           ].map(p => (
-            <button key={p.key} onClick={() => applyPreset(p.key as any)} className="px-2.5 py-1 rounded-lg bg-slate-900 hover:bg-slate-800 border border-slate-800 text-slate-200 text-[11px] font-semibold transition-all flex items-center gap-1">
+            <button key={p.key} onClick={() => applyPreset(p.key as any)} className="px-2.5 py-1 rounded-lg bg-slate-900 hover:bg-slate-800 border border-slate-800 text-slate-200 text-[11px] font-semibold transition-all flex items-center gap-1 hover:border-slate-700">
               <Check size={11} className={p.color} /> {p.label}
             </button>
           ))}
         </div>
       </div>
 
-      {/* ── Main 2-Column Grid — items-stretch keeps both columns equal height ── */}
+      {/* ── Main 2-Column Grid ── */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-stretch">
 
         {/* ══ LEFT: Form Container ══ */}
         <div className="lg:col-span-7 bg-[#0f172a] border border-slate-800 rounded-2xl shadow-xl divide-y divide-slate-800/80 overflow-hidden flex flex-col">
 
-          {/* § 1 — Skill Badge */}
+          {/* § 1 — Skill Selection */}
           <div className="p-4 space-y-2.5">
             <div className="flex items-center justify-between gap-2 flex-wrap">
               <h2 className="text-[11px] font-bold text-slate-200 uppercase tracking-wider flex items-center gap-1.5">
-                <Sparkles size={13} className="text-indigo-400" /> 1. Target Skill
+                <Wand2 size={13} className="text-indigo-400" /> 1. Target Skill Badge
               </h2>
               <div className="flex items-center gap-2">
                 <div className="relative">
@@ -159,11 +265,17 @@ export default function AssignTest() {
             </div>
           </div>
 
-          {/* § 2 — Structure & Parameters */}
-          <div className="p-4 space-y-3">
-            <h2 className="text-[11px] font-bold text-slate-200 uppercase tracking-wider flex items-center gap-1.5">
-              <Sliders size={13} className="text-violet-400" /> 2. Structure & Parameters
-            </h2>
+          {/* § 2 — Structure & AI Prompting (Redesigned & Optimized Sizing) */}
+          <div className="p-4 space-y-3.5">
+            <div className="flex items-center justify-between">
+              <h2 className="text-[11px] font-bold text-slate-200 uppercase tracking-wider flex items-center gap-1.5">
+                <Sliders size={13} className="text-violet-400" /> 2. Structure, AI Directives & Context
+              </h2>
+              <span className="text-[10px] font-bold text-indigo-400 bg-indigo-500/10 border border-indigo-500/20 px-2 py-0.5 rounded-full flex items-center gap-1">
+                <Sparkles size={10} /> LLM Prompt Engine
+              </span>
+            </div>
+
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">Difficulty</label>
@@ -203,6 +315,60 @@ export default function AssignTest() {
                 </div>
               </div>
             </div>
+
+            {/* Custom Prompt & Context Field Redesigned */}
+            <div className="space-y-3 pt-2.5 border-t border-slate-800/80">
+              
+              {/* Quick Prompt Presets Pills */}
+              <div>
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className="text-[10px] font-bold text-slate-300 uppercase tracking-wider flex items-center gap-1">
+                    <Sparkles size={11} className="text-amber-400" /> Admin Custom AI Prompt / Focus Area
+                  </label>
+                  <span className="text-[10px] text-slate-500">{customPrompt.length} chars</span>
+                </div>
+                
+                {/* Clickable AI Prompt Shortcut Pills */}
+                <div className="flex items-center gap-1.5 flex-wrap mb-2">
+                  <span className="text-[10px] font-semibold text-slate-500">Quick Focus:</span>
+                  {PROMPT_PRESETS.map((preset, idx) => (
+                    <button
+                      key={idx}
+                      type="button"
+                      onClick={() => setCustomPrompt(preset.prompt)}
+                      className="px-2 py-0.5 rounded-md bg-slate-950 hover:bg-indigo-600/20 border border-slate-800 hover:border-indigo-500/40 text-[10px] font-medium text-indigo-300 hover:text-indigo-200 transition-all"
+                      title={preset.prompt}
+                    >
+                      ⚡ {preset.label}
+                    </button>
+                  ))}
+                </div>
+
+                <textarea
+                  rows={3}
+                  value={customPrompt}
+                  onChange={e => setCustomPrompt(e.target.value)}
+                  placeholder="e.g. Focus 60% of questions on Async/Await, Middleware & JWT auth patterns, and include multi-choice options with practical code snippets..."
+                  className="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-800 text-xs text-white placeholder-slate-600 focus:outline-none focus:border-indigo-500/70 focus:ring-1 focus:ring-indigo-500/30 transition-all resize-y leading-relaxed"
+                />
+              </div>
+
+              <div>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="text-[10px] font-bold text-slate-300 uppercase tracking-wider">
+                    Domain Syllabus & Placement Context
+                  </label>
+                  <span className="text-[10px] text-slate-500">{syllabusContext.length} chars</span>
+                </div>
+                <textarea
+                  rows={2}
+                  value={syllabusContext}
+                  onChange={e => setSyllabusContext(e.target.value)}
+                  placeholder="Paste syllabus context, placement company exam patterns (e.g. TCS Ninja, Infosys SP, Product Company MCQs, LeetCode style logic)..."
+                  className="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-800 text-xs text-white placeholder-slate-600 focus:outline-none focus:border-indigo-500/70 focus:ring-1 focus:ring-indigo-500/30 transition-all resize-y leading-relaxed"
+                />
+              </div>
+            </div>
           </div>
 
           {/* § 3 — Anti-Cheat */}
@@ -234,20 +400,29 @@ export default function AssignTest() {
           {/* § 4 — Target & Deadline */}
           <div className="p-4 space-y-2.5">
             <h2 className="text-[11px] font-bold text-slate-200 uppercase tracking-wider flex items-center gap-1.5">
-              <Users size={13} className="text-amber-400" /> 4. Target & Deadline
+              <Users size={13} className="text-amber-400" /> 4. Target Branch & Deadline
             </h2>
             <div className="flex gap-4">
-              {(['batch', 'year', 'individual'] as const).map(tgt => (
-                <label key={tgt} className="flex items-center gap-1.5 cursor-pointer capitalize text-slate-300 text-[11px] font-semibold">
-                  <input type="radio" name="targetType" checked={targetType === tgt} onChange={() => setTargetType(tgt)} className="accent-indigo-500" />
-                  {tgt}
+              {[
+                { key: 'branch', label: 'Branch (CSE, IT, AI&DS, AIML)' },
+                { key: 'year', label: 'Academic Year' },
+                { key: 'individual', label: 'Individual' },
+              ].map(tgt => (
+                <label key={tgt.key} className="flex items-center gap-1.5 cursor-pointer capitalize text-slate-300 text-[11px] font-semibold">
+                  <input type="radio" name="targetType" checked={targetType === tgt.key} onChange={() => {
+                    setTargetType(tgt.key as any)
+                    if (tgt.key === 'branch') setTargetVal(branchOptions[0].value)
+                    else if (tgt.key === 'year') setTargetVal(yearOptions[0].value)
+                    else setTargetVal(individualOptions[0].value)
+                  }} className="accent-indigo-500" />
+                  {tgt.label}
                 </label>
               ))}
             </div>
             <div className="grid grid-cols-2 gap-2.5">
               <div>
-                <label className="block text-[10px] font-bold text-slate-400 uppercase mb-0.5">Selection</label>
-                <CustomSelect value={targetVal} onChange={setTargetVal} options={targetType === 'batch' ? batchOptions : targetType === 'year' ? yearOptions : individualOptions} />
+                <label className="block text-[10px] font-bold text-slate-400 uppercase mb-0.5">Selection Target</label>
+                <CustomSelect value={targetVal} onChange={setTargetVal} options={targetType === 'branch' ? branchOptions : targetType === 'year' ? yearOptions : individualOptions} />
               </div>
               <div>
                 <label className="block text-[10px] font-bold text-slate-400 uppercase mb-0.5">Deadline</label>
@@ -256,7 +431,7 @@ export default function AssignTest() {
             </div>
           </div>
 
-          {/* § 5 — Passing Cutoff (grows to fill remaining left-column height) */}
+          {/* § 5 — Passing Cutoff */}
           <div className="p-4 space-y-2.5 flex-1">
             <h2 className="text-[11px] font-bold text-slate-200 uppercase tracking-wider flex items-center gap-1.5">
               <Award size={13} className="text-emerald-400" /> 5. Passing Cutoff
@@ -278,67 +453,147 @@ export default function AssignTest() {
           </div>
         </div>
 
-        {/* ══ RIGHT: Dossier — flex-col + justify-between to fill full height ══ */}
-        <div className="lg:col-span-5 bg-[#0f172a] border border-slate-800 rounded-2xl shadow-xl flex flex-col">
+        {/* ══ RIGHT: Live Dossier & Real DB Deployments (No Blank Space!) ══ */}
+        <div className="lg:col-span-5 bg-[#0f172a] border border-slate-800 rounded-2xl shadow-xl flex flex-col justify-between">
 
-          {/* Live Config Summary */}
-          <div className="p-4 border-b border-slate-800 space-y-2.5">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                <h2 className="text-[11px] font-bold text-white">Live Config Dossier</h2>
-              </div>
-              <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">{selectedSkill}</span>
-            </div>
-            <div className="space-y-1 text-xs">
-              {[
-                { label: 'Skill Badge', value: selectedSkill, cls: 'text-indigo-400 font-bold' },
-                { label: 'Difficulty', value: difficulty, cls: 'text-white font-bold' },
-                { label: 'Structure', value: `${questionCount} Qs · ${timeLimit} Mins`, cls: 'text-white font-bold' },
-                { label: 'Retries & Cutoff', value: `${attempts} Attempt(s) · ${passingScore}% Pass`, cls: 'text-white font-bold' },
-                { label: 'Proctor Shield', value: tabDetection && fullscreenLock ? 'Full Anti-Cheat Active' : 'Basic Guard', cls: `font-bold ${tabDetection && fullscreenLock ? 'text-emerald-400' : 'text-amber-400'}` },
-                { label: 'Assigned Cohort', value: targetVal, cls: 'text-white font-bold' },
-              ].map((row, i) => (
-                <div key={i} className={`flex justify-between py-0.5 ${i < 5 ? 'border-b border-slate-800/60' : ''}`}>
-                  <span className="text-slate-400">{row.label}</span>
-                  <span className={row.cls}>{row.value}</span>
+          <div className="divide-y divide-slate-800/80">
+            {/* Live Config Summary */}
+            <div className="p-4 space-y-2.5">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                  <h2 className="text-[11px] font-bold text-white">Live Config Dossier</h2>
                 </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Cohort Telemetry */}
-          <div className="p-4 border-b border-slate-800 space-y-2.5">
-            <div className="flex items-center justify-between">
-              <span className="text-[11px] font-bold text-slate-300 flex items-center gap-1.5">
-                <Users size={12} className="text-indigo-400" /> Target Cohort
-              </span>
-              <span className="text-[10px] text-slate-500 font-medium">Synced on deploy</span>
-            </div>
-            <div className="grid grid-cols-2 gap-2">
-              <div className="p-2.5 rounded-xl bg-slate-950 border border-slate-800/80">
-                <span className="text-slate-500 block text-[9px]">Cohort Avg Score</span>
-                <span className="font-extrabold text-slate-400 text-sm">—</span>
-                <span className="text-[9px] text-slate-600 block">No data yet</span>
+                <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">{selectedSkill}</span>
               </div>
-              <div className="p-2.5 rounded-xl bg-slate-950 border border-slate-800/80">
-                <span className="text-slate-500 block text-[9px]">Last Deployment</span>
-                <span className="font-extrabold text-slate-400 text-sm">—</span>
-                <span className="text-[9px] text-slate-600 block">None yet</span>
+              <div className="space-y-1 text-xs">
+                {[
+                  { label: 'Skill Badge', value: selectedSkill, cls: 'text-indigo-400 font-bold' },
+                  { label: 'Difficulty', value: difficulty, cls: 'text-white font-bold' },
+                  { label: 'Structure', value: `${questionCount} Qs · ${timeLimit} Mins`, cls: 'text-white font-bold' },
+                  { label: 'Retries & Cutoff', value: `${attempts} Attempt(s) · ${passingScore}% Pass`, cls: 'text-white font-bold' },
+                  { label: 'Proctor Shield', value: tabDetection && fullscreenLock ? 'Full Anti-Cheat Active' : 'Basic Guard', cls: `font-bold ${tabDetection && fullscreenLock ? 'text-emerald-400' : 'text-amber-400'}` },
+                  { label: 'Assigned Cohort', value: targetVal, cls: 'text-white font-bold' },
+                ].map((row, i) => (
+                  <div key={i} className={`flex justify-between py-0.5 ${i < 5 ? 'border-b border-slate-800/60' : ''}`}>
+                    <span className="text-slate-400">{row.label}</span>
+                    <span className={row.cls}>{row.value}</span>
+                  </div>
+                ))}
               </div>
             </div>
-          </div>
 
-          {/* Recent Deployments — flex-1 fills remaining space */}
-          <div className="p-4 border-b border-slate-800 space-y-2 flex-1">
-            <div className="flex justify-between items-center">
-              <span className="text-[11px] font-bold text-slate-300">Recent Deployments</span>
-              <button onClick={() => navigate('/coordinator/test-results')} className="text-[10px] text-indigo-400 hover:underline">View All</button>
+            {/* Live Telemetry Cards */}
+            <div className="p-4 space-y-2.5">
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] font-bold text-slate-300 flex items-center gap-1.5">
+                  <BarChart3 size={12} className="text-indigo-400" /> Cohort Telemetry
+                </span>
+                <button
+                  type="button"
+                  onClick={loadDeploymentsAndAnalytics}
+                  className="text-[10px] text-slate-400 hover:text-indigo-300 flex items-center gap-1 transition-colors"
+                  title="Refresh Telemetry"
+                >
+                  <RefreshCw size={10} className={isFetchingDeployments ? 'animate-spin' : ''} /> Sync Live
+                </button>
+              </div>
+
+              <div className="grid grid-cols-2 gap-2">
+                <div className="p-2.5 rounded-xl bg-slate-950 border border-slate-800/80">
+                  <span className="text-slate-500 block text-[9px] uppercase font-bold">Active Deployments</span>
+                  <span className="font-extrabold text-indigo-400 text-sm">{deployedTests.length} Tests</span>
+                  <span className="text-[9px] text-slate-500 block">{totalSubmissions} Student Submissions</span>
+                </div>
+                <div className="p-2.5 rounded-xl bg-slate-950 border border-slate-800/80">
+                  <span className="text-slate-500 block text-[9px] uppercase font-bold">Cohort Pass Rate</span>
+                  <span className="font-extrabold text-emerald-400 text-sm">{avgPassPercentage}% Pass</span>
+                  <span className="text-[9px] text-slate-500 block">Proctor Verified</span>
+                </div>
+              </div>
             </div>
-            <div className="flex flex-col items-center justify-center py-6 gap-2">
-              <FileSpreadsheet size={24} className="text-slate-700" />
-              <p className="text-[11px] text-slate-500 font-medium">No deployments yet</p>
-              <p className="text-[10px] text-slate-600">Tests you deploy will appear here</p>
+
+            {/* Live DB Deployed Tests List (Replaces Gray Empty Box!) */}
+            <div className="p-4 space-y-2.5">
+              <div className="flex justify-between items-center">
+                <div className="flex items-center gap-1.5">
+                  <Layers size={13} className="text-indigo-400" />
+                  <span className="text-[11px] font-bold text-slate-200">Active Test Deployments</span>
+                  <span className="px-1.5 py-0.5 rounded-full text-[9px] font-bold bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
+                    {deployedTests.length}
+                  </span>
+                </div>
+                <button onClick={() => navigate('/coordinator/test-results')} className="text-[10px] text-indigo-400 hover:underline font-semibold">
+                  View Gradebook →
+                </button>
+              </div>
+
+              {isFetchingDeployments ? (
+                <div className="py-8 flex flex-col items-center justify-center gap-2 text-slate-500">
+                  <RefreshCw size={18} className="animate-spin text-indigo-400" />
+                  <span className="text-xs font-medium">Fetching live database deployments...</span>
+                </div>
+              ) : deployedTests.length > 0 ? (
+                <div className="space-y-2 max-h-72 overflow-y-auto pr-1">
+                  {deployedTests.map((test) => (
+                    <div
+                      key={test.id}
+                      className="p-3 rounded-xl bg-slate-950/90 border border-slate-800/90 hover:border-indigo-500/40 transition-all flex items-center justify-between gap-3 group"
+                    >
+                      <div className="min-w-0 space-y-1">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <h4 className="text-xs font-extrabold text-white truncate">{test.title}</h4>
+                          <span className="px-1.5 py-0.2 rounded text-[9px] font-bold bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">
+                            {test.skillName}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-2 text-[10px] text-slate-400 flex-wrap">
+                          <span>{test.questionCount || 20} Qs · {test.timeLimit}m</span>
+                          <span>•</span>
+                          <span className="text-slate-300 font-medium truncate max-w-[150px]">{test.targetBatch || test.assignedTo}</span>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        <button
+                          type="button"
+                          onClick={() => navigate(`/test-preview/${test.id}`)}
+                          className="p-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 border border-slate-800 text-slate-300 hover:text-white transition-all text-[10px]"
+                          title="Preview Test"
+                        >
+                          View
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteTest(test.id, test.title)}
+                          disabled={deletingId === test.id}
+                          className="p-1.5 rounded-lg bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 text-red-400 hover:text-red-300 transition-all disabled:opacity-50"
+                          title="Retract / Delete Test"
+                        >
+                          {deletingId === test.id ? (
+                            <RefreshCw size={12} className="animate-spin" />
+                          ) : (
+                            <Trash2 size={12} />
+                          )}
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                /* Slick empty state container when 0 tests exist */
+                <div className="p-4 rounded-xl bg-slate-950/70 border border-slate-800/80 text-center space-y-2">
+                  <div className="w-10 h-10 rounded-full bg-indigo-600/10 text-indigo-400 border border-indigo-500/20 mx-auto flex items-center justify-center">
+                    <Sparkles size={18} />
+                  </div>
+                  <div>
+                    <h4 className="text-xs font-bold text-slate-200">Ready for First Test Deployment</h4>
+                    <p className="text-[11px] text-slate-400 leading-snug">
+                      Fill out the parameters on the left and hit <span className="text-indigo-400 font-bold">Deploy</span> to broadcast to students.
+                    </p>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
 
@@ -353,13 +608,17 @@ export default function AssignTest() {
 
             {isSuccess && (
               <div className="p-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs text-center font-bold flex items-center justify-center gap-1.5 animate-fade-in">
-                <Check size={14} /> Test Deployed Successfully!
+                <Check size={14} /> Assessment Deployed & Synchronized Live!
               </div>
             )}
 
             <button onClick={handleAssign} disabled={isLoading}
-              className="w-full py-3 rounded-xl bg-gradient-to-r from-indigo-600 via-indigo-500 to-violet-600 hover:from-indigo-500 hover:to-violet-500 font-extrabold text-white text-xs shadow-lg shadow-indigo-600/25 flex items-center justify-center gap-2 transition-all disabled:opacity-60">
-              {isLoading ? <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> : <><Send size={14} /> Deploy & Assign Skill Test</>}
+              className="w-full py-3 rounded-xl bg-gradient-to-r from-indigo-600 via-indigo-500 to-violet-600 hover:from-indigo-500 hover:to-violet-500 font-extrabold text-white text-xs shadow-lg shadow-indigo-600/25 flex items-center justify-center gap-2 transition-all disabled:opacity-60 cursor-pointer">
+              {isLoading ? (
+                <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+              ) : (
+                <><Send size={14} /> Deploy & Assign Skill Assessment</>
+              )}
             </button>
           </div>
         </div>

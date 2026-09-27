@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
-import type { Project, CreateProjectData } from '../types/project.types'
+import type { Project, CreateProjectData, Task } from '../types/project.types'
 import { projectsApi } from '../api/projects.api'
 
 interface ProjectStore {
@@ -73,8 +73,66 @@ export const useProjectStore = create<ProjectStore>()(
       createProject: async (data: CreateProjectData, currentUserId = 'u1', currentUserName = 'Student') => {
         set({ loading: true, error: null })
         
+        const nowStr = new Date().toISOString().split('T')[0]
+        const projId = `p-${Date.now()}`
+
+        const defaultTasks: Task[] = [
+          {
+            id: `t-${Date.now()}-1`,
+            title: 'Design Architecture & Database Schema',
+            description: `Model data structures and relational schemas for ${data.title}.`,
+            status: 'In Progress' as const,
+            priority: 'High' as const,
+            assigneeName: currentUserName,
+            assigneeId: currentUserId,
+            dueDate: nowStr,
+            labels: ['Backend', 'Database'],
+            projectId: projId,
+            createdAt: nowStr
+          },
+          {
+            id: `t-${Date.now()}-2`,
+            title: 'Implement JWT Auth & Core API Endpoints',
+            description: `Construct secure backend route handlers and middleware for ${data.title}.`,
+            status: 'Backlog' as const,
+            priority: 'High' as const,
+            assigneeName: currentUserName,
+            assigneeId: currentUserId,
+            dueDate: nowStr,
+            labels: ['Security', 'API'],
+            projectId: projId,
+            createdAt: nowStr
+          },
+          {
+            id: `t-${Date.now()}-3`,
+            title: 'Build Responsive Frontend UI & Client Store',
+            description: `Integrate Tailwind/React components and state management for ${data.title}.`,
+            status: 'Backlog' as const,
+            priority: 'Medium' as const,
+            assigneeName: currentUserName,
+            assigneeId: currentUserId,
+            dueDate: nowStr,
+            labels: ['Frontend', 'UI'],
+            projectId: projId,
+            createdAt: nowStr
+          },
+          {
+            id: `t-${Date.now()}-4`,
+            title: 'Write Tests, Audit Verification & Deploy Build',
+            description: `Run test suite, verify contribution metrics, and deploy ${data.title} container.`,
+            status: 'Backlog' as const,
+            priority: 'Medium' as const,
+            assigneeName: currentUserName,
+            assigneeId: currentUserId,
+            dueDate: nowStr,
+            labels: ['DevOps', 'Testing'],
+            projectId: projId,
+            createdAt: nowStr
+          }
+        ]
+
         const localNewProject: Project = {
-          id: `p-${Date.now()}`,
+          id: projId,
           title: data.title,
           description: data.description,
           techStack: data.techStack,
@@ -85,8 +143,8 @@ export const useProjectStore = create<ProjectStore>()(
           members: [
             { id: currentUserId, name: currentUserName, role: 'Leader' }
           ],
-          startDate: new Date().toISOString().split('T')[0],
-          tasks: [],
+          startDate: nowStr,
+          tasks: defaultTasks,
           createdBy: currentUserId
         }
 

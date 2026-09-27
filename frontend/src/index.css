@@ -1,27 +1,30 @@
 @import "tailwindcss";
 
-/* ─── Kollab Design System ──────────────────────────────────────── */
+/* ─── Kollab Modern Minimalist Palette ────────────────────────────── */
 @theme {
-  /* Colors */
-  --color-bg-main: #0a0f1e;
-  --color-bg-card: #0f172a;
-  --color-bg-sidebar: #080d18;
-  --color-border: #1e293b;
+  /* Premium Slate Dark Colors */
+  --color-bg-main: #090d16;
+  --color-bg-card: #0e1526;
+  --color-bg-sidebar: #060911;
+  --color-border: #1a2438;
+  --color-border-hover: #2a3854;
+  
   --color-primary: #6366f1;
   --color-primary-hover: #4f46e5;
   --color-success: #10b981;
   --color-warning: #f59e0b;
   --color-danger: #f43f5e;
+  
   --color-text-primary: #f8fafc;
   --color-text-secondary: #94a3b8;
-  --color-text-muted: #475569;
+  --color-text-muted: #64748b;
 
   /* Font */
-  --font-sans: 'Inter', system-ui, sans-serif;
+  --font-sans: 'Plus Jakarta Sans', 'Inter', system-ui, -apple-system, sans-serif;
 
-  /* Border radius */
-  --radius-card: 10px;
-  --radius-btn: 6px;
+  /* Subtle Border Radius */
+  --radius-card: 14px;
+  --radius-btn: 10px;
 }
 
 /* ─── Base ───────────────────────────────────────────────────────── */
@@ -29,52 +32,84 @@
   box-sizing: border-box;
 }
 
-html {
-  font-family: 'Inter', system-ui, sans-serif;
-  background: #0a0f1e;
+/* ─── Typography Hierarchy (Strict 3-Tier System) ──────────────── */
+.text-page-title {
+  font-size: 1.25rem; /* 20px */
+  font-weight: 800;
+  line-height: 1.3;
   color: #f8fafc;
+  letter-spacing: -0.02em;
+}
+
+.text-section-title {
+  font-size: 0.9375rem; /* 15px */
+  font-weight: 700;
+  line-height: 1.4;
+  color: #f8fafc;
+  letter-spacing: -0.01em;
+}
+
+.text-body-main {
+  font-size: 0.8125rem; /* 13px */
+  font-weight: 500;
+  line-height: 1.5;
+  color: #cbd5e1;
+}
+
+.text-caption-muted {
+  font-size: 0.75rem; /* 12px */
+  font-weight: 500;
+  line-height: 1.4;
+  color: #64748b;
+}
+
+html {
+  font-family: 'Plus Jakarta Sans', 'Inter', system-ui, sans-serif;
+  background: #090d16;
+  color: #f8fafc;
+  font-size: 14px;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
 body {
   margin: 0;
-  background: #0a0f1e;
+  background: #090d16;
   color: #f8fafc;
   min-height: 100vh;
 }
 
 #root {
   min-height: 100vh;
-  background: #0a0f1e;
+  background: #090d16;
 }
 
 /* ─── Scrollbar ──────────────────────────────────────────────────── */
 ::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 5px;
+  height: 5px;
 }
 ::-webkit-scrollbar-track {
-  background: #080d18;
+  background: #060911;
 }
 ::-webkit-scrollbar-thumb {
-  background: #1e293b;
-  border-radius: 3px;
+  background: #1a2438;
+  border-radius: 9999px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #334155;
+  background: #2a3854;
 }
 
 /* ─── Selection ──────────────────────────────────────────────────── */
 ::selection {
-  background: rgba(99, 102, 241, 0.3);
-  color: #f8fafc;
+  background: rgba(99, 102, 241, 0.25);
+  color: #ffffff;
 }
 
-/* ─── Animations / Keyframes ─────────────────────────────────────── */
+/* ─── Keyframes ──────────────────────────────────────────────────── */
 @keyframes pulse-dot {
   0%, 100% { opacity: 1; transform: scale(1); }
-  50%       { opacity: 0.5; transform: scale(1.4); }
+  50%       { opacity: 0.5; transform: scale(1.3); }
 }
 
 @keyframes shimmer {
@@ -83,17 +118,12 @@ body {
 }
 
 @keyframes fadeIn {
-  from { opacity: 0; transform: translateY(8px); }
+  from { opacity: 0; transform: translateY(6px); }
   to   { opacity: 1; transform: translateY(0); }
 }
 
-@keyframes slideInRight {
-  from { opacity: 0; transform: translateX(20px); }
-  to   { opacity: 1; transform: translateX(0); }
-}
-
 @keyframes scaleIn {
-  from { opacity: 0; transform: scale(0.95); }
+  from { opacity: 0; transform: scale(0.97); }
   to   { opacity: 1; transform: scale(1); }
 }
 
@@ -101,89 +131,103 @@ body {
   to { transform: rotate(360deg); }
 }
 
-@keyframes progress-pulse {
-  0%, 100% { opacity: 1; }
-  50%       { opacity: 0.6; }
-}
-
 /* ─── Utility classes ────────────────────────────────────────────── */
-.animate-fade-in       { animation: fadeIn 0.3s ease forwards; }
-.animate-slide-in      { animation: slideInRight 0.3s ease forwards; }
-.animate-scale-in      { animation: scaleIn 0.2s ease forwards; }
+.animate-fade-in       { animation: fadeIn 0.25s ease-out forwards; }
+.animate-scale-in      { animation: scaleIn 0.2s ease-out forwards; }
 .animate-spin-slow     { animation: spin 1s linear infinite; }
 .animate-pulse-dot     { animation: pulse-dot 1.5s ease-in-out infinite; }
 
 .skeleton {
-  background: linear-gradient(90deg, #1e293b 25%, #253347 50%, #1e293b 75%);
+  background: linear-gradient(90deg, #131c2e 25%, #1c2840 50%, #131c2e 75%);
   background-size: 200% 100%;
   animation: shimmer 1.5s infinite;
-  border-radius: 6px;
+  border-radius: 8px;
 }
 
-/* ─── Card base ──────────────────────────────────────────────────── */
+/* ─── Modern Card Component ──────────────────────────────────────── */
 .card {
-  background: #0f172a;
-  border: 1px solid #1e293b;
-  border-radius: 10px;
-  padding: 24px;
-  transition: border-color 0.2s ease;
+  background: #0e1526;
+  border: 1px solid #1a2438;
+  border-radius: 14px;
+  padding: 20px;
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.35);
 }
 
 .card:hover {
-  border-color: #334155;
+  border-color: #2a3854;
+  transform: translateY(-1px);
+  box-shadow: 0 8px 25px -4px rgba(0, 0, 0, 0.45);
 }
 
-/* ─── Button base ────────────────────────────────────────────────── */
+/* ─── Premium Modern Button Styling ──────────────────────────────── */
 .btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 8px;
-  padding: 8px 16px;
-  border-radius: 6px;
-  font-size: 14px;
-  font-weight: 500;
+  padding: 9px 18px;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
   cursor: pointer;
-  border: none;
-  transition: all 0.2s ease;
+  border: 1px solid transparent;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
   white-space: nowrap;
   user-select: none;
+  active: scale(0.98);
+}
+
+.btn:active {
+  transform: scale(0.98);
 }
 
 .btn:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+  transform: none;
 }
 
+/* Primary indigo gradient button */
 .btn-primary {
-  background: #6366f1;
-  color: #fff;
+  background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+  color: #ffffff;
+  border-color: rgba(255, 255, 255, 0.1);
+  box-shadow: 0 2px 10px rgba(99, 102, 241, 0.25);
 }
 
 .btn-primary:hover:not(:disabled) {
-  background: #4f46e5;
+  background: linear-gradient(135deg, #4f46e5 0%, #4338ca 100%);
+  box-shadow: 0 4px 16px rgba(99, 102, 241, 0.4);
 }
 
+/* Secondary subtle slate button */
 .btn-secondary {
-  background: #1e293b;
-  color: #f8fafc;
-  border: 1px solid #334155;
+  background: #131c2e;
+  color: #e2e8f0;
+  border: 1px solid #1a2438;
 }
 
 .btn-secondary:hover:not(:disabled) {
-  background: #253347;
-  border-color: #475569;
+  background: #1c2840;
+  border-color: #2a3854;
+  color: #ffffff;
 }
 
+/* Danger button */
 .btn-danger {
-  background: #f43f5e;
-  color: #fff;
+  background: linear-gradient(135deg, #f43f5e 0%, #e11d48 100%);
+  color: #ffffff;
+  box-shadow: 0 2px 10px rgba(244, 63, 94, 0.2);
 }
 
 .btn-danger:hover:not(:disabled) {
-  background: #e11d48;
+  background: linear-gradient(135deg, #e11d48 0%, #be123c 100%);
+  box-shadow: 0 4px 16px rgba(244, 63, 94, 0.35);
 }
 
+/* Ghost button */
 .btn-ghost {
   background: transparent;
   color: #94a3b8;
@@ -191,33 +235,35 @@ body {
 }
 
 .btn-ghost:hover:not(:disabled) {
-  background: #1e293b;
-  color: #f8fafc;
-  border-color: #334155;
+  background: #131c2e;
+  color: #ffffff;
+  border-color: #1a2438;
 }
 
 .btn-sm {
-  padding: 5px 10px;
+  padding: 6px 12px;
   font-size: 12px;
+  border-radius: 8px;
 }
 
 .btn-lg {
   padding: 12px 24px;
-  font-size: 16px;
+  font-size: 15px;
+  border-radius: 12px;
 }
 
-/* ─── Input base ─────────────────────────────────────────────────── */
+/* ─── Input Fields ───────────────────────────────────────────────── */
 .input {
   width: 100%;
-  background: #080d18;
-  border: 1px solid #1e293b;
-  border-radius: 6px;
-  padding: 10px 14px;
+  background: #090d16;
+  border: 1px solid #1a2438;
+  border-radius: 10px;
+  padding: 9px 14px;
   color: #f8fafc;
-  font-size: 14px;
-  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  font-family: inherit;
   outline: none;
-  transition: border-color 0.2s ease;
+  transition: all 0.2s ease;
 }
 
 .input::placeholder {
@@ -227,6 +273,7 @@ body {
 .input:focus {
   border-color: #6366f1;
   box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
+  background: #0b111e;
 }
 
 .input-error {

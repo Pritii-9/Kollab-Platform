@@ -17,6 +17,9 @@ export const testsApi = {
       title: testData.title,
       skill_name: testData.skillName,
       difficulty: testData.difficulty,
+      question_count: testData.questionCount || 20,
+      prompt: testData.prompt || '',
+      context: testData.context || '',
       time_limit: testData.timeLimit,
       attempts: testData.attempts,
       randomize_questions: testData.antiCheat?.randomizeQuestions,
@@ -53,5 +56,10 @@ export const testsApi = {
     const res = await apiClient.get<TestResult[]>('/tests/my-attempts')
     return res.data
   },
+
+  deleteTest: async (id: string): Promise<void> => {
+    await apiClient.delete(`/tests/${id}`)
+  },
 }
+
 

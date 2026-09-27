@@ -5,25 +5,7 @@ import type { Test, TestResult } from '../types/test.types'
 import type { BatchReport } from '../types/report.types'
 
 // ── Students ──────────────────────────────────────────────────────
-export const MOCK_STUDENTS: Student[] = [
-  {
-    id: 'student-priti', name: 'Priti Jadhav', email: 'priti@college.edu',
-    rollNumber: 'CSE21001', department: 'Computer Science & Engineering',
-    year: 4, batch: 'CSE Batch B', cgpa: 8.9, avatar: undefined,
-    trustScore: 92, placementStatus: 'Eligible',
-    skills: [
-      { id: 'sk1', name: 'React',    status: 'verified', score: 92 },
-      { id: 'sk2', name: 'Node.js',  status: 'verified', score: 88 },
-      { id: 'sk3', name: 'Python',   status: 'verified', score: 90 },
-      { id: 'sk4', name: 'FastAPI',  status: 'verified', score: 86 },
-    ],
-    github: 'github.com/Pritii-9', linkedin: 'linkedin.com/in/priti-jadhav',
-    bio: 'Full stack & ML developer. Passionate about web platform architecture.',
-    reviews: [],
-    availability: { openToProjects: true, preferredRoles: ['Fullstack', 'Frontend'] },
-    testsCompleted: 4, projectsJoined: 1, joinedAt: '2021-08-01',
-  }
-]
+export const MOCK_STUDENTS: Student[] = []
 
 // ── Batches ───────────────────────────────────────────────────────
 export const MOCK_BATCHES: Batch[] = [

@@ -93,6 +93,31 @@ class AuthService:
             await db.execute(delete(OTPVerification).filter(OTPVerification.id == otp_entry.id))
             await db.commit()
 
+        # Systemic Edge Case Guard: Verify if selected department, year, and batch exist
+        from models.batch import Batch
+        req_dept = step1_data.department.strip()
+        req_year = int(step1_data.year) if step1_data.year.isdigit() else 1
+        req_batch = step1_data.batch.strip()
+
+        batch_query = await db.execute(
+            select(Batch)
+            .filter(Batch.year == req_year)
+            .filter(Batch.status == "Active")
+        )
+        existing_batches = batch_query.scalars().all()
+        
+        # Match batch section or name
+        matching_batch = [
+            b for b in existing_batches
+            if req_batch.lower() in b.name.lower() or req_batch.lower() in b.section.lower()
+        ]
+
+        if not matching_batch:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"No active academic cohort found for {req_dept} - Year {req_year} ({req_batch}). Please contact your Placement Coordinator to register your batch."
+            )
+
         # Create new student user
         pwd_hash = get_password_hash(data.password)
         new_user = User(
@@ -101,7 +126,7 @@ class AuthService:
             password_hash=pwd_hash,
             role="student",
             department=step1_data.department,
-            year=int(step1_data.year) if step1_data.year.isdigit() else 1,
+            year=req_year,
             batch=step1_data.batch,
             roll_number=step1_data.roll_number,
             trust_score=70,
@@ -137,30 +162,9 @@ class AuthService:
         result = await db.execute(select(User).filter(User.email.ilike(clean_email)))
         user = result.scalars().first()
 
-        # If student account missing in DB, auto-provision priti@college.edu or pritiijadhav95@gmail.com
-        if not user and clean_email in ["priti@college.edu", "pritiijadhav95@gmail.com"]:
-            pwd_hash = get_password_hash("@Priti09" if clean_email == "pritiijadhav95@gmail.com" else "password123")
-            user = User(
-                id=f"student-priti-{secrets.token_hex(4)}",
-                name="Priti Jadhav",
-                email=clean_email,
-                password_hash=pwd_hash,
-                role="student",
-                department="Computer Science & Engineering",
-                year=4,
-                batch="CSE Batch B",
-                roll_number="CSE21001",
-                cgpa=8.9,
-                trust_score=92,
-                placement_status="Eligible",
-                bio="Full stack & ML developer. Passionate about web platform architecture.",
-                github="github.com/Pritii-9",
-                linkedin="linkedin.com/in/priti-jadhav",
-                is_active=True
-            )
-            db.add(user)
-            await db.commit()
-            await db.refresh(user)
+        # If account missing in DB, do not auto-provision
+        if not user:
+            pass
 
         # If coordinator account missing in DB, auto-provision
         if not user and clean_email == "coordinator@college.edu":

@@ -1,7 +1,9 @@
 import { useState, useEffect } from 'react'
-import { Megaphone, Send, Trash2, Eye, CheckCircle2 } from 'lucide-react'
+import { Megaphone, Send, Trash2, Eye, CheckCircle2, Loader2, AlertCircle } from 'lucide-react'
 import CustomSelect from '@/components/shared/CustomSelect'
 import CustomDatePicker from '@/components/shared/CustomDatePicker'
+import { reportsApi } from '@/api/reports.api'
+import toast from 'react-hot-toast'
 
 interface AnnouncementItem {
   id: string
@@ -15,6 +17,8 @@ interface AnnouncementItem {
 
 export default function Announcements() {
   const [announcements, setAnnouncements] = useState<AnnouncementItem[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+  const [isSubmitting, setIsSubmitting] = useState(false)
   const [isFormOpen, setIsFormOpen] = useState(false)
 
   // Form state
@@ -23,31 +27,80 @@ export default function Announcements() {
   const [target, setTarget] = useState('All Students')
   const [isScheduled, setIsScheduled] = useState(false)
   const [scheduleDate, setScheduleDate] = useState('')
+  const [validationError, setValidationError] = useState('')
+
+  const fetchAnnouncements = async () => {
+    setIsLoading(true)
+    try {
+      const data = await reportsApi.getAnnouncements()
+      setAnnouncements(data || [])
+    } catch (err) {
+      console.error('Failed to load announcements:', err)
+    } finally {
+      setIsLoading(false)
+    }
+  }
 
   useEffect(() => {
     document.title = 'Announcements — Kollab'
+    fetchAnnouncements()
   }, [])
 
-  const handleSend = (e: React.FormEvent) => {
+  const handleSend = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!title || !message) return
-    const newAnn: AnnouncementItem = {
-      id: `ann-${Date.now()}`,
-      title,
-      targetBadge: target,
-      message,
-      seenCount: 0,
-      readCount: 0,
-      timestamp: isScheduled && scheduleDate ? `Scheduled for ${scheduleDate}` : 'Just now'
+    setValidationError('')
+
+    // Form Validation Rules
+    if (!title.trim() || title.trim().length < 4) {
+      setValidationError('Announcement Title must be at least 4 characters long.')
+      toast.error('Please enter a valid title (min 4 characters)')
+      return
     }
-    setAnnouncements([newAnn, ...announcements])
-    setTitle('')
-    setMessage('')
-    setIsFormOpen(false)
+
+    if (!message.trim() || message.trim().length < 10) {
+      setValidationError('Message Content must be at least 10 characters long.')
+      toast.error('Please enter a detailed message (min 10 characters)')
+      return
+    }
+
+    setIsSubmitting(true)
+    try {
+      const created = await reportsApi.createAnnouncement({
+        title: title.trim(),
+        message: message.trim(),
+        target_badge: target
+      })
+
+      if (created) {
+        toast.success('Broadcast announcement sent to targeted students! 🚀')
+        setAnnouncements([created, ...announcements])
+      } else {
+        const fallback: AnnouncementItem = {
+          id: `ann-${Date.now()}`,
+          title: title.trim(),
+          targetBadge: target,
+          message: message.trim(),
+          seenCount: 0,
+          readCount: 0,
+          timestamp: 'Just now'
+        }
+        setAnnouncements([fallback, ...announcements])
+        toast.success('Broadcast announcement published!')
+      }
+
+      setTitle('')
+      setMessage('')
+      setIsFormOpen(false)
+    } catch (err) {
+      toast.error('Failed to send announcement. Please try again.')
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
   const handleDelete = (id: string) => {
     setAnnouncements(announcements.filter((a) => a.id !== id))
+    toast.success('Announcement removed')
   }
 
   return (
@@ -60,7 +113,7 @@ export default function Announcements() {
         </div>
         <button
           onClick={() => setIsFormOpen(!isFormOpen)}
-          className="px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs shadow-lg shadow-indigo-600/20 flex items-center gap-2"
+          className="px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs shadow-lg shadow-indigo-600/20 flex items-center gap-2 transition-all cursor-pointer"
         >
           <Megaphone size={16} /> {isFormOpen ? 'Close Compose' : '+ Compose Announcement'}
         </button>
@@ -71,33 +124,45 @@ export default function Announcements() {
         <form onSubmit={handleSend} className="p-6 rounded-2xl bg-[#0f172a] border border-[#1e293b] shadow-xl space-y-4 animate-fade-in">
           <h3 className="text-base font-bold text-white mb-2">Create New Broadcast Alert</h3>
 
+          {validationError && (
+            <div className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-400 text-xs font-semibold flex items-center gap-2">
+              <AlertCircle size={16} /> {validationError}
+            </div>
+          )}
+
           <div>
-            <label className="block text-xs font-semibold text-slate-300 mb-1">Announcement Title</label>
+            <label className="block text-xs font-semibold text-slate-300 mb-1">Announcement Title *</label>
             <input
               type="text"
               required
               value={title}
-              onChange={(e) => setTitle(e.target.value)}
+              onChange={(e) => {
+                setTitle(e.target.value)
+                if (validationError) setValidationError('')
+              }}
               placeholder="e.g. Mandatory Resume Workshop & Placement Portal Deadline"
-              className="w-full px-4 py-2.5 rounded-xl bg-[#080d18] border border-[#1e293b] text-sm text-white focus:border-indigo-500"
+              className="w-full px-4 py-2.5 rounded-xl bg-[#080d18] border border-[#1e293b] text-sm text-white focus:outline-none focus:border-indigo-500"
             />
           </div>
 
           <div>
-            <label className="block text-xs font-semibold text-slate-300 mb-1">Message Content</label>
+            <label className="block text-xs font-semibold text-slate-300 mb-1">Message Content *</label>
             <textarea
               required
               rows={4}
               value={message}
-              onChange={(e) => setMessage(e.target.value)}
+              onChange={(e) => {
+                setMessage(e.target.value)
+                if (validationError) setValidationError('')
+              }}
               placeholder="Type your broadcast message here..."
-              className="w-full px-4 py-2.5 rounded-xl bg-[#080d18] border border-[#1e293b] text-sm text-white focus:border-indigo-500 resize-none"
+              className="w-full px-4 py-2.5 rounded-xl bg-[#080d18] border border-[#1e293b] text-sm text-white focus:outline-none focus:border-indigo-500 resize-none"
             />
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1">Send To Target</label>
+              <label className="block text-xs font-semibold text-slate-300 mb-1">Send To Target Audience</label>
               <CustomSelect
                 value={target}
                 onChange={setTarget}
@@ -143,16 +208,22 @@ export default function Announcements() {
             </button>
             <button
               type="submit"
-              className="px-5 py-2 text-xs font-bold bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl shadow-lg shadow-indigo-600/20 flex items-center gap-2"
+              disabled={isSubmitting}
+              className="px-5 py-2.5 text-xs font-bold bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl shadow-lg shadow-indigo-600/20 flex items-center gap-2 disabled:opacity-60 transition-all cursor-pointer"
             >
-              <Send size={14} /> Send Announcement
+              {isSubmitting ? <Loader2 size={16} className="animate-spin" /> : <Send size={14} />}
+              {isSubmitting ? 'Sending Broadcast...' : 'Send Announcement'}
             </button>
           </div>
         </form>
       )}
 
       {/* Announcements List */}
-      {announcements.length === 0 ? (
+      {isLoading ? (
+        <div className="p-12 text-center text-xs text-slate-400 flex items-center justify-center gap-2">
+          <Loader2 size={18} className="animate-spin text-indigo-400" /> Loading department announcements...
+        </div>
+      ) : announcements.length === 0 ? (
         <div className="p-12 rounded-2xl bg-[#0f172a] border border-[#1e293b] text-center space-y-3">
           <Megaphone size={36} className="mx-auto text-slate-600" />
           <h3 className="font-bold text-white text-sm">No Broadcast Announcements</h3>

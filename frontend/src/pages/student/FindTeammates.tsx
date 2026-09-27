@@ -5,7 +5,7 @@ import { studentsApi, type TeammateMatchResult } from '@/api/students.api'
 import { useProjectStore } from '@/store/projectStore'
 import SearchInput from '@/components/shared/SearchInput'
 import EmptyState from '@/components/shared/EmptyState'
-import { Sparkles, Users, X, Check, UserPlus, Loader2, FolderPlus, AlertCircle } from 'lucide-react'
+import { Wand2, Users, X, Check, UserPlus, Loader2, FolderPlus, AlertCircle } from 'lucide-react'
 import toast from 'react-hot-toast'
 import CustomSelect from '@/components/shared/CustomSelect'
 
@@ -143,9 +143,9 @@ export default function FindTeammates() {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h2 className="text-xl font-extrabold text-white flex items-center gap-2">
-            <Sparkles size={22} className="text-indigo-400 animate-pulse" /> AI Teammate Matchmaker
+            <Users size={22} className="text-indigo-400" /> Teammate Matchmaker
           </h2>
-          <p className="text-xs text-slate-400">ML vector cosine similarity matching to build complementary project teams</p>
+          <p className="text-xs text-slate-400">Skill & project compatibility matching to build balanced project teams</p>
         </div>
         {userProjects.length > 0 && (
           <button
@@ -159,7 +159,7 @@ export default function FindTeammates() {
 
       {/* No Projects Notice Banner */}
       {hasCheckedProjects && userProjects.length === 0 && (
-        <div className="p-4 rounded-2xl bg-gradient-to-r from-amber-500/10 via-[#0f172a] to-amber-500/5 border border-amber-500/30 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-xl">
+        <div className="p-4 rounded-2xl bg-[#0f172a] border border-amber-500/30 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-xl">
           <div className="flex items-start gap-3">
             <div className="p-2 rounded-xl bg-amber-500/20 text-amber-400 shrink-0">
               <AlertCircle size={20} />
@@ -167,7 +167,7 @@ export default function FindTeammates() {
             <div>
               <h3 className="text-xs font-bold text-amber-200">No Active Projects Created Yet</h3>
               <p className="text-[11px] text-slate-300 mt-0.5">
-                You can browse AI teammate recommendations, but you need at least 1 project to send team invitations.
+                You can browse teammate recommendations, but you need at least 1 project to send team invitations.
               </p>
             </div>
           </div>
@@ -180,16 +180,16 @@ export default function FindTeammates() {
         </div>
       )}
 
-      {/* AI Banner */}
-      <div className="p-5 rounded-2xl bg-gradient-to-r from-indigo-900/50 via-[#0f172a] to-[#080d18] border border-indigo-500/30 flex items-start justify-between gap-4 shadow-xl">
+      {/* Skill Matching Banner */}
+      <div className="p-5 rounded-2xl bg-[#0e1526] border border-[#1a2438] flex items-start justify-between gap-4 shadow-xl">
         <div className="flex items-start gap-3">
           <div className="p-2.5 rounded-xl bg-indigo-600/20 text-indigo-400 shrink-0">
-            <Sparkles size={22} />
+            <Users size={22} />
           </div>
           <div>
-            <h3 className="text-sm font-bold text-white">Cosine Skill Complementarity Active</h3>
+            <h3 className="text-sm font-bold text-white">Skill Compatibility Matching Active</h3>
             <p className="text-xs text-slate-300 mt-0.5 leading-relaxed">
-              Matching peers based on required tech stack overlap, CGPA, and proctored trust scores.
+              Matching teammates based on tech stack fit, academic standing, and verified test scores.
             </p>
           </div>
         </div>
@@ -240,7 +240,7 @@ export default function FindTeammates() {
       {loading ? (
         <div className="flex flex-col items-center justify-center py-12 space-y-3">
           <Loader2 size={32} className="animate-spin text-indigo-400" />
-          <p className="text-xs font-semibold text-slate-400">Computing AI Cosine Skill Complementarity Matches...</p>
+          <p className="text-xs font-semibold text-slate-400">Finding best teammate matches...</p>
         </div>
       ) : filteredTeammates.length > 0 ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -254,7 +254,7 @@ export default function FindTeammates() {
                 <div className="space-y-3">
                   <div className="flex items-center justify-between">
                     <span className="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 flex items-center gap-1">
-                      <Sparkles size={12} /> {tm.matchPercentage}% Match
+                      <Users size={12} /> {tm.matchPercentage}% Match
                     </span>
                     <span className="text-[10px] text-slate-400 font-semibold">Yr {tm.year} · {tm.department}</span>
                   </div>
@@ -358,7 +358,7 @@ export default function FindTeammates() {
             </div>
 
             <div className="p-3 rounded-xl bg-[#080d18] border border-[#1e293b] space-y-2">
-              <span className="text-[10px] font-bold text-slate-400 uppercase">AI Complementary Rationale</span>
+              <span className="text-[10px] font-bold text-slate-400 uppercase">Why this teammate is a great match</span>
               <p className="text-xs text-indigo-300 font-medium">{selectedStudentModal.reason}</p>
             </div>
 

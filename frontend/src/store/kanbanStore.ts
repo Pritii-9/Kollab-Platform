@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import type { Task, TaskStatus } from '../types/project.types'
+import { useAuthStore } from './authStore'
 
 interface KanbanStore {
   tasks: Record<string, Task>
@@ -41,7 +42,22 @@ export const useKanbanStore = create<KanbanStore>()(
         set((state) => {
           const tasks = { ...state.tasks }
           if (!tasks[taskId]) return state
+          const prevStatus = tasks[taskId].status
           tasks[taskId] = { ...tasks[taskId], status: newStatus }
+
+          // If moved to Done from another column, boost user trust score
+          if (newStatus === 'Done' && prevStatus !== 'Done') {
+            try {
+              const authState = useAuthStore.getState()
+              if (authState?.user) {
+                const currentScore = authState.user.trustScore || (authState.user as any).trust_score || 90
+                authState.updateUser({ trustScore: Math.min(currentScore + 3, 100) } as any)
+              }
+            } catch {
+              // Ignore store sync fallback
+            }
+          }
+
           return { tasks, columns: buildColumns(tasks) }
         })
       },

@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react'
-import { Sparkles, RotateCw } from 'lucide-react'
+import { useState } from 'react'
+import { Compass, RotateCw } from 'lucide-react'
 
 interface AIInsightCardProps {
   insight?: string
@@ -25,13 +25,13 @@ export function AIInsightCard({
   const isLoading = externalLoading || internalLoading
 
   return (
-    <div className="p-5 rounded-2xl bg-gradient-to-r from-[#0f172a] to-[#131d33] border border-[#1e293b] border-l-4 border-l-indigo-500 shadow-xl relative overflow-hidden">
+    <div className="p-5 rounded-2xl bg-[#0f172a] border border-[#1e293b] border-l-4 border-l-indigo-500 shadow-xl relative overflow-hidden">
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
           <div className="p-1.5 rounded-lg bg-indigo-500/20 text-indigo-400">
-            <Sparkles size={18} />
+            <Compass size={18} />
           </div>
-          <h3 className="text-sm font-bold text-slate-100">AI Intelligence Insight</h3>
+          <h3 className="text-sm font-bold text-slate-100">Department Analytics Insight</h3>
         </div>
         <button
           onClick={handleRefresh}
@@ -50,7 +50,7 @@ export function AIInsightCard({
           <div className="h-3.5 bg-slate-800 rounded-md animate-pulse w-4/6" />
         </div>
       ) : (
-        <p className="text-sm text-slate-300 leading-relaxed font-normal">{insight}</p>
+        <p className="text-xs text-slate-300 leading-relaxed font-normal">{insight}</p>
       )}
     </div>
   )

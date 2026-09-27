@@ -30,14 +30,17 @@ class TestCreate(BaseModel):
     title: str
     skill_name: str
     difficulty: str = "Medium"
+    question_count: int = 20
+    prompt: Optional[str] = ""
+    context: Optional[str] = ""
     time_limit: int = 30
     attempts: int = 2
     randomize_questions: bool = True
     randomize_options: bool = True
     tab_detection: bool = True
     fullscreen_lock: bool = True
-    assigned_to: str = "batch"
-    target_batch: Optional[str] = "Batch A"
+    assigned_to: str = "branch"
+    target_batch: Optional[str] = "Computer Science & Engineering (CSE)"
     target_year: Optional[int] = None
     target_students: Optional[List[str]] = []
     due_date: str = ""

@@ -1,28 +1,33 @@
 import { useState, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { studentsApi } from '@/api/students.api'
 import type { Student } from '@/types/student.types'
 import SearchInput from '@/components/shared/SearchInput'
 import PlacementStatusBadge from '@/components/student/PlacementStatusBadge'
 import { Download, ChevronLeft, ChevronRight, UserCheck } from 'lucide-react'
 import CustomSelect from '@/components/shared/CustomSelect'
-
 import { useCacheStore } from '@/store/cacheStore'
 
 export default function StudentList() {
   const navigate = useNavigate()
+  const [searchParams, setSearchParams] = useSearchParams()
   const { students, setStudents } = useCacheStore()
   const [loading, setLoading] = useState(students.length === 0)
   const [search, setSearch] = useState('')
   const [selectedYear, setSelectedYear] = useState('all')
-  const [selectedBatch, setSelectedBatch] = useState('all')
+  const [selectedDept, setSelectedDept] = useState(searchParams.get('dept') || 'all')
+  const [selectedBatch, setSelectedBatch] = useState(searchParams.get('batch') || 'all')
   const [selectedPlacement, setSelectedPlacement] = useState('all')
   const [page, setPage] = useState(1)
 
   useEffect(() => {
     document.title = 'Students — Kollab'
+    const deptParam = searchParams.get('dept')
+    const batchParam = searchParams.get('batch')
+    if (deptParam) setSelectedDept(deptParam)
+    if (batchParam) setSelectedBatch(batchParam)
     loadStudents()
-  }, [selectedYear, selectedBatch, selectedPlacement])
+  }, [selectedYear, selectedDept, selectedBatch, selectedPlacement, searchParams])
 
   const loadStudents = async () => {
     try {
@@ -40,12 +45,33 @@ export default function StudentList() {
     }
   }
 
+  const matchesDepartment = (studentDept: string | undefined, filterDept: string) => {
+    if (filterDept === 'all' || !filterDept) return true
+    if (!studentDept) return false
+    const sd = studentDept.toLowerCase()
+    const fd = filterDept.toLowerCase()
+    if (fd.includes('cse') || fd.includes('computer')) {
+      return sd.includes('computer') || sd.includes('cse')
+    }
+    if (fd.includes('it') || fd.includes('information')) {
+      return sd.includes('information') || sd.includes('it')
+    }
+    if (fd.includes('aids') || fd.includes('data')) {
+      return sd.includes('data') || sd.includes('aids')
+    }
+    if (fd.includes('aiml') || fd.includes('machine')) {
+      return sd.includes('machine') || sd.includes('aiml')
+    }
+    return sd.includes(fd) || fd.includes(sd)
+  }
+
   const filteredStudents = students.filter((student) => {
     const matchesSearch =
       !search ||
       student.name.toLowerCase().includes(search.toLowerCase()) ||
       student.rollNumber.toLowerCase().includes(search.toLowerCase()) ||
       student.email.toLowerCase().includes(search.toLowerCase())
+    const matchesDept = matchesDepartment(student.department, selectedDept)
     const matchesBatch =
       selectedBatch === 'all' ||
       !selectedBatch ||
@@ -53,7 +79,12 @@ export default function StudentList() {
         student.batch.toLowerCase().includes(selectedBatch.toLowerCase()) ||
         selectedBatch.toLowerCase().includes(student.batch.toLowerCase())
       ))
-    return matchesSearch && matchesBatch
+    const matchesPlacement =
+      selectedPlacement === 'all' ||
+      !selectedPlacement ||
+      student.placementStatus === selectedPlacement
+
+    return matchesSearch && matchesDept && matchesBatch && matchesPlacement
   })
 
   const itemsPerPage = 8
@@ -61,12 +92,13 @@ export default function StudentList() {
   const paginatedStudents = filteredStudents.slice((page - 1) * itemsPerPage, page * itemsPerPage)
 
   const handleExportCSV = () => {
-    const headers = ['Roll No', 'Name', 'Email', 'Year', 'Batch', 'CGPA', 'Verified Skills', 'Readiness', 'Status']
+    const headers = ['Roll No', 'Name', 'Email', 'Year', 'Department', 'Batch', 'CGPA', 'Verified Skills', 'Readiness', 'Status']
     const rows = filteredStudents.map((s) => [
       s.rollNumber || 'N/A',
       s.name,
       s.email,
       s.year,
+      s.department || 'N/A',
       s.batch,
       s.cgpa,
       s.skills ? s.skills.filter((sk) => sk.status === 'verified').length : 0,
@@ -90,20 +122,35 @@ export default function StudentList() {
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
           <h2 className="text-xl font-extrabold text-white">Realtime Students Roster</h2>
-          <p className="text-xs text-slate-400">View performance, verified skills, and placement readiness</p>
+          <p className="text-xs text-slate-400">View performance, verified skills, and placement readiness across branch cohorts</p>
         </div>
         <button
           onClick={handleExportCSV}
           disabled={filteredStudents.length === 0}
-          className="px-4 py-2 rounded-xl bg-[#0f172a] border border-[#1e293b] hover:border-slate-600 disabled:opacity-50 text-slate-200 text-xs font-semibold flex items-center gap-2 transition-colors"
+          className="px-4 py-2 rounded-xl bg-[#0f172a] border border-[#1e293b] hover:border-slate-600 disabled:opacity-50 text-slate-200 text-xs font-semibold flex items-center gap-2 transition-colors cursor-pointer"
         >
           <Download size={16} /> Export CSV
         </button>
       </div>
 
       {/* Filter Row */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 p-4 rounded-2xl bg-[#0f172a] border border-[#1e293b]">
-        <SearchInput value={search} onChange={setSearch} placeholder="Search by name or roll number..." />
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 p-4 rounded-2xl bg-[#0f172a] border border-[#1e293b]">
+        <SearchInput value={search} onChange={setSearch} placeholder="Search name or roll no..." />
+        <CustomSelect
+          value={selectedDept}
+          onChange={(val) => {
+            setSelectedDept(val)
+            setSearchParams(val === 'all' ? {} : { dept: val })
+            setPage(1)
+          }}
+          options={[
+            { value: 'all', label: 'All Branches' },
+            { value: 'Computer Science & Engineering', label: 'CSE Branch' },
+            { value: 'Information Technology', label: 'IT Branch' },
+            { value: 'Artificial Intelligence & Data Science', label: 'AI&DS Branch' },
+            { value: 'Artificial Intelligence & Machine Learning', label: 'AIML Branch' }
+          ]}
+        />
         <CustomSelect
           value={selectedYear}
           onChange={(val) => {
@@ -126,7 +173,9 @@ export default function StudentList() {
           }}
           options={[
             { value: 'all', label: 'All Batches' },
-            ...Array.from(new Set(students.map((s) => s.batch).filter(Boolean))).map((b) => ({ value: b, label: b }))
+            { value: 'Batch A', label: 'Batch A' },
+            { value: 'Batch B', label: 'Batch B' },
+            { value: 'Batch C', label: 'Batch C' }
           ]}
         />
         <CustomSelect

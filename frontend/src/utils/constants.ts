@@ -1,19 +1,21 @@
 // Navigation items per role
 export const COORDINATOR_NAV = [
   { label: 'Dashboard',     path: '/coordinator/dashboard',    icon: 'LayoutDashboard' },
-  { label: 'Batches',       path: '/coordinator/batches',      icon: 'Users' },
+  { label: 'Branch & Batches',path: '/coordinator/batches',     icon: 'Users' },
   { label: 'Students',      path: '/coordinator/students',     icon: 'GraduationCap' },
   { label: 'Assign Test',   path: '/coordinator/assign-test',  icon: 'ClipboardList' },
   { label: 'Test Results',  path: '/coordinator/test-results', icon: 'FileSpreadsheet' },
   { label: 'Reports',       path: '/coordinator/reports',      icon: 'BarChart2' },
   { label: 'Announcements', path: '/coordinator/announcements',icon: 'Megaphone' },
+  { label: 'Settings',      path: '/coordinator/settings',     icon: 'Settings' },
 ] as const
 
 export const STUDENT_NAV = [
   { label: 'Dashboard',      path: '/student/dashboard',     icon: 'LayoutDashboard' },
+  { label: 'Assessments',    path: '/student/assessments',   icon: 'ClipboardList' },
   { label: 'Projects',       path: '/student/projects',      icon: 'FolderKanban' },
   { label: 'Find Teammates', path: '/student/teammates',     icon: 'UserPlus' },
-  { label: 'AI Tools',       path: '/student/ai-tools',      icon: 'Sparkles' },
+  { label: 'AI Tools',       path: '/student/ai-tools',      icon: 'Wand2' },
   { label: 'Analytics',      path: '/student/analytics',     icon: 'TrendingUp' },
   { label: 'Resume',         path: '/student/resume',        icon: 'FileText' },
   { label: 'Team Chat',      path: '/student/chat',          icon: 'MessageSquare' },

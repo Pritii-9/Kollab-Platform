@@ -9,6 +9,8 @@ import ProtectedRoute from '@/components/layout/ProtectedRoute'
 // Standalone pages (no layout)
 import Login from '@/pages/Login'
 
+import StudentAssessments from '@/pages/student/StudentAssessments'
+
 // Coordinator pages
 import CoordinatorDashboard from '@/pages/coordinator/CoordinatorDashboard'
 import BatchManagement from '@/pages/coordinator/BatchManagement'
@@ -92,6 +94,9 @@ export default function App() {
             <Route path="test-results"  element={<TestResultsMatrix />} />
             <Route path="reports"       element={<Reports />} />
             <Route path="announcements" element={<Announcements />} />
+            <Route path="profile"       element={<MyProfile />} />
+            <Route path="settings"      element={<Settings />} />
+            <Route path="notifications" element={<Notifications />} />
           </Route>
 
           {/* Student routes */}
@@ -105,6 +110,7 @@ export default function App() {
           >
             <Route index element={<Navigate to="dashboard" replace />} />
             <Route path="dashboard"          element={<StudentDashboard />} />
+            <Route path="assessments"        element={<StudentAssessments />} />
             <Route path="profile"            element={<MyProfile />} />
             <Route path="resume"             element={<MyResume />} />
             <Route path="teammates"          element={<FindTeammates />} />

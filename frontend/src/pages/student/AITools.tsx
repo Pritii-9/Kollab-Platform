@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Sparkles, Search, Cpu, Check, Copy, Loader2, AlertCircle, X } from 'lucide-react'
+import { Search, Cpu, Check, Copy, Loader2, AlertCircle, X, FileText, Sparkles } from 'lucide-react'
 import CustomSelect from '@/components/shared/CustomSelect'
 import { aiApi } from '@/api/ai.api'
 import { useAuthStore } from '@/store/authStore'
@@ -27,7 +27,7 @@ export default function AITools() {
   const [isFindingRoles, setIsFindingRoles] = useState(false)
 
   useEffect(() => {
-    document.title = 'AI Tools — Kollab'
+    document.title = 'Career Tools — Kollab'
   }, [])
 
   const handleGenerateBullets = async () => {
@@ -49,7 +49,7 @@ export default function AITools() {
         ])
       }
     } catch (err) {
-      console.warn('AI bullet generation call failed, using heuristic fallback:', err)
+      console.warn('Bullet generation call failed, using heuristic fallback:', err)
       const clean = projectInput.trim()
       setGeneratedBullets([
         `Architected and deployed ${clean}, improving system response times by 35% and data efficiency.`,
@@ -116,21 +116,21 @@ export default function AITools() {
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <h2 className="text-xl font-extrabold text-white">AI Placement Career Tools</h2>
+        <h2 className="text-xl font-extrabold text-white">Placement & Career Tools</h2>
         <p className="text-xs text-slate-400">Generate resume action points, analyze skill gaps, and explore role matches</p>
       </div>
 
       {/* Grid of Tools */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Card 1: Resume Bullet Generator */}
-        <div className="p-6 rounded-2xl bg-[#0f172a] border border-[#1e293b] shadow-xl space-y-4 lg:col-span-2">
-          <div className="flex items-center gap-2">
-            <div className="p-2 rounded-xl bg-indigo-600/20 text-indigo-400">
-              <Sparkles size={20} />
+        <div className="p-6 rounded-2xl bg-[#0e1526] border border-[#1a2438] hover:border-[#2a3854] shadow-xl space-y-4 lg:col-span-2 transition-all">
+          <div className="flex items-center gap-3">
+            <div className="p-2.5 rounded-xl bg-[#131c2e] text-indigo-400 border border-[#1a2438]">
+              <FileText size={18} />
             </div>
             <div>
-              <h3 className="text-base font-bold text-white">AI Resume Action Bullet Generator</h3>
-              <p className="text-xs text-slate-400">Convert project descriptions into high-impact bullet points</p>
+              <h3 className="text-base font-bold text-white tracking-tight">Resume Bullet Point Generator</h3>
+              <p className="text-xs text-slate-400">Generate recruiter-optimized accomplishment bullets for your project experience</p>
             </div>
           </div>
 
@@ -297,7 +297,7 @@ export default function AITools() {
             </div>
 
             <div className="flex items-center justify-between gap-2">
-              <p className="text-xs text-slate-400">AI analysis of your test scores, CGPA, and project telemetry.</p>
+              <p className="text-xs text-slate-400">Readiness analysis based on your test scores, CGPA, and project experience.</p>
               {roleMatches.length > 0 && (
                 <button
                   onClick={() => setRoleMatches([])}
@@ -325,7 +325,7 @@ export default function AITools() {
               </div>
             ) : (
               <div className="p-4 rounded-xl bg-[#080d18] border border-[#1e293b] text-center space-y-2">
-                <p className="text-xs text-slate-400">Click "Find Matches" to calculate AI match scores based on your skills.</p>
+                <p className="text-xs text-slate-400">Click "Find Matches" to calculate role match scores based on your verified skills.</p>
               </div>
             )}
           </div>

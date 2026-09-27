@@ -15,6 +15,8 @@ export default function TestResultsMatrix() {
   const [search, setSearch] = useState('')
   const [selectedBatch, setSelectedBatch] = useState('all')
   const [selectedStatus, setSelectedStatus] = useState('all')
+  const [selectedTest, setSelectedTest] = useState('all')
+  const [sortBy, setSortBy] = useState<'recent' | 'score' | 'name'>('recent')
 
   useEffect(() => {
     document.title = 'Test Results Gradebook — Kollab'
@@ -32,27 +34,40 @@ export default function TestResultsMatrix() {
     }
   }
 
-  const filteredAttempts = attempts.filter((att) => {
-    const matchesSearch =
-      !search ||
-      att.studentName.toLowerCase().includes(search.toLowerCase()) ||
-      (att.rollNumber && att.rollNumber.toLowerCase().includes(search.toLowerCase())) ||
-      att.testTitle.toLowerCase().includes(search.toLowerCase()) ||
-      att.skillName.toLowerCase().includes(search.toLowerCase())
-    
-    const matchesBatch =
-      selectedBatch === 'all' ||
-      !selectedBatch ||
-      (att.batch && att.batch.toLowerCase().includes(selectedBatch.toLowerCase()))
+  // Extract unique test titles dynamically for test-wise filter
+  const uniqueTestTitles = Array.from(new Set(attempts.map(a => a.testTitle).filter(Boolean)))
 
-    const matchesStatus =
-      selectedStatus === 'all' ||
-      (selectedStatus === 'passed' && att.passed) ||
-      (selectedStatus === 'failed' && !att.passed) ||
-      (selectedStatus === 'flagged' && att.tabSwitches > 0)
+  const filteredAttempts = attempts
+    .filter((att) => {
+      const matchesSearch =
+        !search ||
+        att.studentName.toLowerCase().includes(search.toLowerCase()) ||
+        (att.rollNumber && att.rollNumber.toLowerCase().includes(search.toLowerCase())) ||
+        att.testTitle.toLowerCase().includes(search.toLowerCase()) ||
+        att.skillName.toLowerCase().includes(search.toLowerCase())
+      
+      const matchesBatch =
+        selectedBatch === 'all' ||
+        !selectedBatch ||
+        (att.batch && att.batch.toLowerCase().includes(selectedBatch.toLowerCase()))
 
-    return matchesSearch && matchesBatch && matchesStatus
-  })
+      const matchesStatus =
+        selectedStatus === 'all' ||
+        (selectedStatus === 'passed' && att.passed) ||
+        (selectedStatus === 'failed' && !att.passed) ||
+        (selectedStatus === 'flagged' && att.tabSwitches > 0)
+
+      const matchesTest =
+        selectedTest === 'all' ||
+        att.testTitle.toLowerCase() === selectedTest.toLowerCase()
+
+      return matchesSearch && matchesBatch && matchesStatus && matchesTest
+    })
+    .sort((a, b) => {
+      if (sortBy === 'score') return b.percentage - a.percentage
+      if (sortBy === 'name') return a.studentName.localeCompare(b.studentName)
+      return new Date(b.completedAt || 0).getTime() - new Date(a.completedAt || 0).getTime()
+    })
 
   const totalAttemptsCount = attempts.length
   const passedCount = attempts.filter((a) => a.passed).length
@@ -93,7 +108,7 @@ export default function TestResultsMatrix() {
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
           <h2 className="text-xl font-extrabold text-white">Proctored Test Results Gradebook</h2>
-          <p className="text-xs text-slate-400">View real-time assessment scores, pass rates, and proctoring telemetry across students</p>
+          <p className="text-xs text-slate-400">View real-time assessment scores, pass rates, and proctoring status across students</p>
         </div>
         <div className="flex items-center gap-3">
           <button
@@ -140,26 +155,33 @@ export default function TestResultsMatrix() {
       </div>
 
       {/* Filter Row */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 p-4 rounded-2xl bg-[#0f172a] border border-[#1e293b]">
-        <SearchInput value={search} onChange={setSearch} placeholder="Search by student, roll no, or test title..." />
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 p-4 rounded-2xl bg-[#0e1526] border border-[#1a2438]">
+        <SearchInput value={search} onChange={setSearch} placeholder="Search by student, roll no, or skill..." />
         <CustomSelect
-          value={selectedBatch}
-          onChange={setSelectedBatch}
+          value={selectedTest}
+          onChange={setSelectedTest}
           options={[
-            { value: 'all', label: 'All Batches' },
-            { value: 'Batch A', label: 'Batch A' },
-            { value: 'Batch B', label: 'Batch B' },
-            { value: 'Batch C', label: 'Batch C' }
+            { value: 'all', label: 'All Deployed Tests' },
+            ...uniqueTestTitles.map(t => ({ value: t, label: t }))
           ]}
         />
         <CustomSelect
           value={selectedStatus}
           onChange={setSelectedStatus}
           options={[
-            { value: 'all', label: 'All Statuses' },
+            { value: 'all', label: 'All Result Statuses' },
             { value: 'passed', label: 'Passed Only' },
             { value: 'failed', label: 'Failed / Retake Required' },
             { value: 'flagged', label: 'Proctor Flagged (Tab Switches)' }
+          ]}
+        />
+        <CustomSelect
+          value={sortBy}
+          onChange={(val) => setSortBy(val as any)}
+          options={[
+            { value: 'recent', label: 'Sort by Most Recent' },
+            { value: 'score', label: 'Sort by Highest Score' },
+            { value: 'name', label: 'Sort by Student Name' }
           ]}
         />
       </div>

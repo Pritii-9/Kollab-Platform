@@ -73,6 +73,37 @@ class NotificationService:
         db.add(ann)
         await db.commit()
         await db.refresh(ann)
+
+        # Broadcast push notification to targeted student users in DB
+        try:
+            from models.user import User
+            stmt = select(User).filter(User.role == "student")
+            res = await db.execute(stmt)
+            students = res.scalars().all()
+
+            for s in students:
+                # Target filter check if cohort year specified (e.g. "Year 1 Cohort")
+                if data.target_badge and "Year " in data.target_badge:
+                    try:
+                        target_yr = data.target_badge.split("Year ")[1].split(" ")[0]
+                        if str(s.year) != target_yr:
+                            continue
+                    except Exception:
+                        pass
+
+                notif = Notification(
+                    user_id=s.id,
+                    type="system",
+                    title=f"📢 Announcement: {ann.title}",
+                    description=ann.message,
+                    read=False,
+                    action=f"announcement:{ann.id}"
+                )
+                db.add(notif)
+            await db.commit()
+        except Exception as e:
+            print("Error broadcasting notifications for announcement:", e)
+
         return AnnouncementResponse(
             id=ann.id,
             title=ann.title,

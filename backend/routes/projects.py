@@ -98,7 +98,7 @@ async def create_project(
     db.add(new_proj)
     await db.flush()
 
-    # Add creator as lead member
+    # 1. Add creator as lead member
     lead_member = ProjectMember(
         project_id=new_proj.id,
         user_id=current_user.id,
@@ -106,8 +106,73 @@ async def create_project(
         role="Project Lead"
     )
     db.add(lead_member)
+
+    # 2. Auto-generate standard production milestones
+    default_milestones = [
+        Milestone(project_id=new_proj.id, title="M1: System Architecture & DB Schema", description="Define ER diagram, tables, and DB connection pool.", due_date="7 days", status="In Progress", progress=25),
+        Milestone(project_id=new_proj.id, title="M2: Core API Routes & Auth Setup", description="Build JWT authentication and RESTful API routes.", due_date="14 days", status="Pending", progress=0),
+        Milestone(project_id=new_proj.id, title="M3: Responsive Frontend Integration", description="Develop React/Vite UI components and state management.", due_date="21 days", status="Pending", progress=0),
+        Milestone(project_id=new_proj.id, title="M4: Testing, Audit & Staging Deploy", description="Execute unit tests, proctored audit, and Docker deployment.", due_date="30 days", status="Pending", progress=0),
+    ]
+    for m in default_milestones:
+        db.add(m)
+
+    # 3. Auto-generate standard Kanban production tasks
+    default_tasks = [
+        Task(
+            project_id=new_proj.id,
+            title="Design Architecture & Database Schema",
+            description=f"Model data structures and relational schemas for {clean_title}.",
+            status="In Progress",
+            priority="High",
+            assignee_name=current_user.name,
+            assignee_id=current_user.id,
+            due_date=datetime.now(timezone.utc).strftime("%Y-%m-%d"),
+            labels_json=json.dumps(["Backend", "Database"])
+        ),
+        Task(
+            project_id=new_proj.id,
+            title="Implement JWT Auth & Core API Endpoints",
+            description=f"Construct secure backend route handlers and middleware for {clean_title}.",
+            status="Backlog",
+            priority="High",
+            assignee_name=current_user.name,
+            assignee_id=current_user.id,
+            due_date=datetime.now(timezone.utc).strftime("%Y-%m-%d"),
+            labels_json=json.dumps(["Security", "API"])
+        ),
+        Task(
+            project_id=new_proj.id,
+            title="Build Responsive Frontend UI & Client Store",
+            description=f"Integrate Tailwind/React components and state management for {clean_title}.",
+            status="Backlog",
+            priority="Medium",
+            assignee_name=current_user.name,
+            assignee_id=current_user.id,
+            due_date=datetime.now(timezone.utc).strftime("%Y-%m-%d"),
+            labels_json=json.dumps(["Frontend", "UI"])
+        ),
+        Task(
+            project_id=new_proj.id,
+            title="Write Tests, Audit Verification & Deploy Build",
+            description=f"Run test suite, verify contribution metrics, and deploy {clean_title} container.",
+            status="Backlog",
+            priority="Medium",
+            assignee_name=current_user.name,
+            assignee_id=current_user.id,
+            due_date=datetime.now(timezone.utc).strftime("%Y-%m-%d"),
+            labels_json=json.dumps(["DevOps", "Testing"])
+        ),
+    ]
+    for t in default_tasks:
+        db.add(t)
+
     await db.commit()
     await db.refresh(new_proj)
+
+    # Fetch created tasks for response
+    tasks_res = await db.execute(select(Task).filter(Task.project_id == new_proj.id))
+    created_tasks = tasks_res.scalars().all()
 
     return ProjectResponse(
         id=new_proj.id,
@@ -121,7 +186,22 @@ async def create_project(
         members=[ProjectMemberSchema(id=lead_member.id, name=lead_member.name, role=lead_member.role, avatar=lead_member.avatar)],
         startDate=new_proj.start_date,
         endDate=new_proj.end_date,
-        tasks=[],
+        tasks=[
+            TaskSchema(
+                id=t.id,
+                title=t.title,
+                description=t.description,
+                status=t.status,
+                priority=t.priority,
+                assigneeId=t.assignee_id,
+                assigneeName=t.assignee_name,
+                assigneeAvatar=t.assignee_avatar,
+                dueDate=t.due_date,
+                labels=t.labels,
+                projectId=t.project_id,
+                createdAt=t.created_at.strftime("%Y-%m-%d") if t.created_at else ""
+            ) for t in created_tasks
+        ],
         createdBy=new_proj.created_by
     )
 
@@ -245,6 +325,8 @@ async def update_task(
     if not task:
         raise HTTPException(status_code=404, detail="Task not found")
 
+    old_status = task.status
+
     if updates.title is not None:
         task.title = updates.title
     if updates.description is not None:
@@ -259,6 +341,47 @@ async def update_task(
         task.due_date = updates.due_date
     if updates.labels is not None:
         task.labels = updates.labels
+
+    # Contribution Velocity Sync: Recalculate project progress & boost trust score
+    if task.project_id:
+        all_tasks_res = await db.execute(select(Task).filter(Task.project_id == task.project_id))
+        all_tasks = all_tasks_res.scalars().all()
+        if all_tasks:
+            completed_tasks = [t for t in all_tasks if (t.status or "").lower() in ["done", "completed"]]
+            calc_progress = min(100, int((len(completed_tasks) / len(all_tasks)) * 100))
+            
+            proj_res = await db.execute(select(Project).filter(Project.id == task.project_id))
+            proj = proj_res.scalars().first()
+            if proj:
+                proj.progress = calc_progress
+                if calc_progress == 100:
+                    proj.status = "Completed"
+
+    # Boost Trust Score when completing a task
+    new_is_done = (task.status or "").lower() in ["done", "completed"]
+    old_was_done = (old_status or "").lower() in ["done", "completed"]
+
+    if new_is_done and not old_was_done:
+        target_user = current_user
+        if task.assignee_id:
+            user_res = await db.execute(select(User).filter(User.id == task.assignee_id))
+            assignee_user = user_res.scalars().first()
+            if assignee_user:
+                target_user = assignee_user
+        
+        # Increase trust score by 3 (max 100)
+        target_user.trust_score = min(100, (target_user.trust_score or 70) + 3)
+
+        notif = Notification(
+            user_id=target_user.id,
+            type="project",
+            title="Contribution Velocity Boost! 🚀",
+            description=f"+3 Trust Score added for completing Kanban task '{task.title}'. Current score: {target_user.trust_score}.",
+            action=f"task_completed:{task.id}",
+            timestamp=datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M"),
+            read=False
+        )
+        db.add(notif)
 
     await db.commit()
     await db.refresh(task)
