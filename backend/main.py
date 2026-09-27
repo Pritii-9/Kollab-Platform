@@ -20,6 +20,8 @@ from routes import (
     ai_router,
     resume_router,
     health_router,
+    notifications_router,
+    chat_router,
 )
 
 logging.basicConfig(
@@ -125,6 +127,12 @@ app.add_middleware(
 )
 
 # Register All API Routers under /api
+from fastapi.staticfiles import StaticFiles
+import os
+uploads_dir = os.path.join(os.path.dirname(__file__), "uploads")
+os.makedirs(uploads_dir, exist_ok=True)
+app.mount("/uploads", StaticFiles(directory=uploads_dir), name="uploads")
+
 app.include_router(health_router, prefix=settings.API_V1_STR)
 app.include_router(auth_router, prefix=settings.API_V1_STR)
 app.include_router(students_router, prefix=settings.API_V1_STR)
@@ -132,8 +140,10 @@ app.include_router(batches_router, prefix=settings.API_V1_STR)
 app.include_router(projects_router, prefix=settings.API_V1_STR)
 app.include_router(tests_router, prefix=settings.API_V1_STR)
 app.include_router(reports_router, prefix=settings.API_V1_STR)
+app.include_router(notifications_router, prefix=settings.API_V1_STR)
 app.include_router(ai_router, prefix=settings.API_V1_STR)
 app.include_router(resume_router, prefix=settings.API_V1_STR)
+app.include_router(chat_router, prefix=settings.API_V1_STR)
 
 @app.get("/")
 async def root():

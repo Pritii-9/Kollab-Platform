@@ -1,6 +1,6 @@
-import { useState } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
-import { Menu, Bell, Search, User, LogOut, Settings } from 'lucide-react'
+import { Menu, Bell, Search, User, LogOut, Settings, AlertTriangle } from 'lucide-react'
 import { useAuthStore } from '@/store/authStore'
 import { useNotificationStore } from '@/store/notificationStore'
 
@@ -14,7 +14,23 @@ export function Header({ onMobileMenuToggle }: HeaderProps) {
   const { user, logout } = useAuthStore()
   const { unreadCount } = useNotificationStore()
   const [dropdownOpen, setDropdownOpen] = useState(false)
+  const [showLogoutModal, setShowLogoutModal] = useState(false)
   const [searchVal, setSearchVal] = useState('')
+  const dropdownRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setDropdownOpen(false)
+      }
+    }
+    if (dropdownOpen) {
+      document.addEventListener('mousedown', handleClickOutside)
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside)
+    }
+  }, [dropdownOpen])
 
   // Compute title from route
   const getPageTitle = () => {
@@ -38,6 +54,12 @@ export function Header({ onMobileMenuToggle }: HeaderProps) {
     if (path.includes('/student/ai-tools')) return 'AI Career Tools'
     if (path.includes('/student/settings')) return 'Account Settings'
     return 'Dashboard'
+  }
+
+  const handleConfirmLogout = () => {
+    setShowLogoutModal(false)
+    logout()
+    navigate('/login')
   }
 
   return (
@@ -72,12 +94,14 @@ export function Header({ onMobileMenuToggle }: HeaderProps) {
         >
           <Bell size={20} />
           {unreadCount > 0 && (
-            <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-indigo-500 ring-2 ring-[#080d18] animate-pulse" />
+            <span className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] rounded-full bg-indigo-500 text-white text-[9px] font-extrabold flex items-center justify-center px-1 ring-2 ring-[#080d18] shadow-lg shadow-indigo-500/40">
+              {unreadCount > 9 ? '9+' : unreadCount}
+            </span>
           )}
         </button>
 
         {/* User Dropdown */}
-        <div className="relative">
+        <div ref={dropdownRef} className="relative">
           <button
             onClick={() => setDropdownOpen(!dropdownOpen)}
             className="flex items-center gap-2 p-1 rounded-xl hover:bg-[#1e293b] transition-colors"
@@ -115,9 +139,9 @@ export function Header({ onMobileMenuToggle }: HeaderProps) {
               <button
                 onClick={() => {
                   setDropdownOpen(false)
-                  logout()
+                  setShowLogoutModal(true)
                 }}
-                className="w-full flex items-center gap-2 px-4 py-2 text-sm text-rose-400 hover:bg-rose-500/10"
+                className="w-full flex items-center gap-2 px-4 py-2 text-sm text-rose-400 hover:bg-rose-500/10 font-semibold transition-colors"
               >
                 <LogOut size={16} /> Sign Out
               </button>
@@ -125,6 +149,42 @@ export function Header({ onMobileMenuToggle }: HeaderProps) {
           )}
         </div>
       </div>
+
+      {/* Sign Out Confirmation Modal */}
+      {showLogoutModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
+          <div className="bg-[#0f172a] border border-[#1e293b] rounded-2xl p-6 max-w-sm w-full shadow-2xl space-y-4">
+            <div className="flex items-center gap-3">
+              <div className="w-11 h-11 rounded-full bg-rose-500/10 text-rose-400 flex items-center justify-center shrink-0 border border-rose-500/20 shadow-lg shadow-rose-500/10">
+                <LogOut size={20} />
+              </div>
+              <div>
+                <h3 className="text-base font-extrabold text-white">Sign Out Confirmation</h3>
+                <p className="text-xs text-slate-400">Are you sure you want to sign out?</p>
+              </div>
+            </div>
+
+            <p className="text-xs text-slate-300 leading-relaxed bg-[#080d18] p-3 rounded-xl border border-[#1e293b]">
+              You will be signed out of your Kollab session. Any active tasks or test sessions in progress may need to be saved.
+            </p>
+
+            <div className="flex items-center gap-2 pt-2">
+              <button
+                onClick={() => setShowLogoutModal(false)}
+                className="flex-1 py-2 text-xs font-semibold text-slate-400 hover:text-white border border-[#1e293b] rounded-xl hover:border-slate-600 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleConfirmLogout}
+                className="flex-1 py-2 text-xs font-bold bg-rose-600 hover:bg-rose-500 text-white rounded-xl shadow-lg shadow-rose-600/20 flex items-center justify-center gap-1.5 transition-colors"
+              >
+                <LogOut size={14} /> Yes, Sign Out
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </header>
   )
 }

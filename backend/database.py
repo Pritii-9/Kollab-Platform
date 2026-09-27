@@ -2,6 +2,7 @@ import logging
 import asyncio
 import socket
 from typing import AsyncGenerator
+from sqlalchemy import text
 from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, AsyncSession
 from sqlalchemy.pool import NullPool
 from config import settings
@@ -80,22 +81,27 @@ def _build_engine(db_url: str):
 
 # ─── Choose the right DB ──────────────────────────────────────────────────────
 _raw_url = settings.DATABASE_URL or ""
-_is_pg = _raw_url.startswith("postgresql") or _raw_url.startswith("postgres://")
+_use_local_override = settings.ENVIRONMENT == "development" or os.getenv("USE_LOCAL_DB", "true").lower() in ("true", "1")
 
-if _is_pg:
-    _pg_url = _normalize_pg_url(_raw_url)
-    if _is_neon_reachable(_pg_url):
-        logger.info("✅ Neon PostgreSQL is reachable. Using cloud database.")
-        ACTIVE_DB_URL = _pg_url
-        _using_sqlite = False
-    else:
-        logger.warning("⚠️  Neon unreachable — starting with local SQLite fallback.")
-        ACTIVE_DB_URL = SQLITE_FALLBACK_URL
-        _using_sqlite = True
-else:
-    # Already SQLite or other local DB
-    ACTIVE_DB_URL = _raw_url if _raw_url else SQLITE_FALLBACK_URL
+if _use_local_override or not _raw_url:
+    ACTIVE_DB_URL = SQLITE_FALLBACK_URL
     _using_sqlite = True
+    logger.info("⚡ Using high-performance local SQLite database engine.")
+else:
+    _is_pg = _raw_url.startswith("postgresql") or _raw_url.startswith("postgres://")
+    if _is_pg:
+        _pg_url = _normalize_pg_url(_raw_url)
+        if _is_neon_reachable(_pg_url, timeout=1.0):
+            logger.info("✅ Cloud PostgreSQL is reachable. Using cloud database.")
+            ACTIVE_DB_URL = _pg_url
+            _using_sqlite = False
+        else:
+            logger.warning("⚠️ Cloud DB unreachable — starting with local SQLite fallback.")
+            ACTIVE_DB_URL = SQLITE_FALLBACK_URL
+            _using_sqlite = True
+    else:
+        ACTIVE_DB_URL = _raw_url
+        _using_sqlite = _raw_url.startswith("sqlite")
 
 engine = _build_engine(ACTIVE_DB_URL)
 
@@ -119,8 +125,35 @@ async def get_db() -> AsyncGenerator[AsyncSession, None]:
             await session.close()
 
 
+async def _run_column_migrations(conn):
+    """
+    Safe ADD COLUMN migrations for existing tables (SQLite & Postgres compatible).
+    """
+    sqlite_migrations = [
+        "ALTER TABLE users ADD COLUMN resume_url VARCHAR(500)",
+        "ALTER TABLE users ADD COLUMN resume_name VARCHAR(255)",
+        "ALTER TABLE users ADD COLUMN resumes_json TEXT",
+        "ALTER TABLE project_members ADD COLUMN status VARCHAR(20) DEFAULT 'Accepted'",
+    ]
+
+    for sql in sqlite_migrations:
+        try:
+            async with conn.begin_nested():
+                await conn.execute(text(sql))
+            logger.info(f"Migration OK: {sql[:60]}...")
+        except Exception as e:
+            err = str(e).lower()
+            if "duplicate column" in err or "already exists" in err:
+                pass
+            else:
+                logger.warning(f"Migration notice ({sql[:50]}...): {e}")
+
+
 async def init_db():
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
-    db_type = "SQLite (local fallback)" if _using_sqlite else "Neon PostgreSQL"
+        await _run_column_migrations(conn)
+    db_type = "SQLite (local fast)" if _using_sqlite else "Cloud PostgreSQL"
     logger.info(f"Database schema initialised successfully [{db_type}].")
+
+

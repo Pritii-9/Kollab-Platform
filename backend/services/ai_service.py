@@ -30,12 +30,31 @@ def _cache_set(key: str, value: Any, ttl: int = _CACHE_TTL_SECONDS):
     _llm_cache[key] = (value, time.monotonic() + ttl)
 
 
-# ─── Groq LLM Caller with Timeout + Retry ────────────────────────────────────
-async def _call_groq(messages: list, max_retries: int = 3) -> Optional[str]:
+from fastapi import HTTPException
+
+# ─── Sliding-Window Rate Limiter for LLM API Budgeting ──────────────────────
+_user_request_timestamps: Dict[str, List[float]] = {}
+_MAX_REQUESTS_PER_MINUTE = 10
+
+def check_ai_rate_limit(user_id: str):
+    now = time.monotonic()
+    timestamps = _user_request_timestamps.get(user_id, [])
+    recent = [t for t in timestamps if now - t < 60]
+    if len(recent) >= _MAX_REQUESTS_PER_MINUTE:
+        raise HTTPException(
+            status_code=429,
+            detail="AI API rate limit reached (max 10 requests per minute). Please wait a moment."
+        )
+    recent.append(now)
+    _user_request_timestamps[user_id] = recent
+
+# ─── Groq LLM Caller with Timeout + Retry + Token Budget Cap ────────────────
+async def _call_groq(messages: list, max_tokens: int = 450, max_retries: int = 2) -> Optional[str]:
     """
     Call Groq API with:
+    - Token budget cap (max_tokens=450/850)
     - Hard timeout (settings.GROQ_TIMEOUT_SECONDS)
-    - Exponential backoff retry (1s → 2s → 4s)
+    - Exponential backoff retry
     - Returns None on all failures (caller uses heuristic fallback)
     """
     if not settings.GROQ_API_KEY:
@@ -49,6 +68,8 @@ async def _call_groq(messages: list, max_retries: int = 3) -> Optional[str]:
                 client.chat.completions.create(
                     messages=messages,
                     model=settings.GROQ_MODEL,
+                    max_tokens=max_tokens,
+                    temperature=0.3,
                     response_format={"type": "json_object"},
                 ),
                 timeout=settings.GROQ_TIMEOUT_SECONDS
@@ -61,10 +82,10 @@ async def _call_groq(messages: list, max_retries: int = 3) -> Optional[str]:
             logger.warning(f"Groq API error on attempt {attempt + 1}/{max_retries}: {e}")
 
         if attempt < max_retries - 1:
-            wait = 2 ** attempt  # 1s, 2s, 4s
+            wait = 2 ** attempt  # 1s, 2s
             await asyncio.sleep(wait)
 
-    logger.error("Groq API failed after all retries — falling back to heuristic")
+    logger.error("Groq API failed after retries — falling back to heuristic")
     return None
 
 

@@ -43,6 +43,8 @@ export interface Student {
   testsCompleted: number
   projectsJoined: number
   joinedAt: string
+  resumeUrl?: string
+  resumeName?: string
 }
 
 export interface StudentCardData {

@@ -42,6 +42,7 @@ class ProjectMember(BaseModel):
     name: Mapped[str] = mapped_column(String(100), nullable=False)
     role: Mapped[str] = mapped_column(String(50), default="Developer")
     avatar: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    status: Mapped[str] = mapped_column(String(20), default="Accepted")  # 'Lead' | 'Accepted' | 'Pending'
 
     project: Mapped["Project"] = relationship("Project", back_populates="members")
 

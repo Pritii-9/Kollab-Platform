@@ -25,6 +25,9 @@ class User(BaseModel):
     trust_score: Mapped[int] = mapped_column(Integer, default=70)
     placement_status: Mapped[str] = mapped_column(String(30), default="Eligible")  # 'Placed' | 'Eligible' | 'Ineligible' | 'In Process'
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
+    resume_url: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
+    resume_name: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    resumes_json: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
 
     # Relationships
     skills: Mapped[List["StudentSkill"]] = relationship("StudentSkill", back_populates="student", cascade="all, delete-orphan")

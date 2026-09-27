@@ -1,13 +1,17 @@
 import { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { SKILLS } from '@/utils/constants'
 import { studentsApi, type TeammateMatchResult } from '@/api/students.api'
+import { useProjectStore } from '@/store/projectStore'
 import SearchInput from '@/components/shared/SearchInput'
 import EmptyState from '@/components/shared/EmptyState'
-import { Sparkles, Users, X, Check, UserPlus, Loader2, Award } from 'lucide-react'
+import { Sparkles, Users, X, Check, UserPlus, Loader2, FolderPlus, AlertCircle } from 'lucide-react'
 import toast from 'react-hot-toast'
 import CustomSelect from '@/components/shared/CustomSelect'
 
 export default function FindTeammates() {
+  const navigate = useNavigate()
+  const { projects: storeProjects, fetchProjects } = useProjectStore()
   const [search, setSearch] = useState('')
   const [selectedSkills, setSelectedSkills] = useState<string[]>(['React', 'Node.js'])
   const [selectedYear, setSelectedYear] = useState('all')
@@ -15,6 +19,12 @@ export default function FindTeammates() {
   const [loading, setLoading] = useState(true)
   const [invitedIds, setInvitedIds] = useState<string[]>([])
   const [selectedStudentModal, setSelectedStudentModal] = useState<TeammateMatchResult | null>(null)
+  // Project picker state
+  const [inviteTarget, setInviteTarget] = useState<TeammateMatchResult | null>(null)
+  const [userProjects, setUserProjects] = useState<{ id: string; title: string }[]>([])
+  const [loadingProjects, setLoadingProjects] = useState(false)
+  const [hasCheckedProjects, setHasCheckedProjects] = useState(false)
+  const [sendingInvite, setSendingInvite] = useState(false)
 
   const fetchMatches = async () => {
     setLoading(true)
@@ -29,10 +39,34 @@ export default function FindTeammates() {
     }
   }
 
+  const fetchUserProjects = async () => {
+    setLoadingProjects(true)
+    try {
+      await fetchProjects()
+      const latestProjects = useProjectStore.getState().projects
+      setUserProjects(latestProjects.map(p => ({ id: p.id, title: p.title })))
+    } catch {
+      const fallbackProjects = useProjectStore.getState().projects
+      setUserProjects(fallbackProjects.map(p => ({ id: p.id, title: p.title })))
+    } finally {
+      setLoadingProjects(false)
+      setHasCheckedProjects(true)
+    }
+  }
+
   useEffect(() => {
     document.title = 'AI Teammate Matchmaker — Kollab'
     fetchMatches()
+    fetchUserProjects()
   }, [selectedSkills])
+
+  useEffect(() => {
+    if (storeProjects) {
+      setUserProjects(storeProjects.map(p => ({ id: p.id, title: p.title })))
+      setHasCheckedProjects(true)
+    }
+  }, [storeProjects])
+
 
   const toggleSkill = (sk: string) => {
     if (selectedSkills.includes(sk)) {
@@ -42,12 +76,61 @@ export default function FindTeammates() {
     }
   }
 
-  const handleInvite = (student: TeammateMatchResult) => {
-    setInvitedIds([...invitedIds, student.id])
-    toast.success(`Team invitation sent to ${student.name}!`)
+  const openInviteModal = async (student: TeammateMatchResult) => {
+    setInviteTarget(student)
+    await fetchUserProjects()
+  }
+
+  const [invitedProjectPairs, setInvitedProjectPairs] = useState<string[]>([])
+
+  const handleInvite = async (student: TeammateMatchResult, projectId: string) => {
+    setSendingInvite(true)
+    const targetStudentId = student.id || student.rollNumber || 's1'
+    const targetProject = storeProjects.find(p => p.id === projectId)
+    const pairKey = `${targetStudentId}_${projectId}`
+
+    // 1. Check local project state for duplicate invitation
+    const isAlreadyMember = targetProject?.members.some(m =>
+      m.id === targetStudentId ||
+      m.name.toLowerCase() === student.name.toLowerCase()
+    ) || invitedProjectPairs.includes(pairKey)
+
+    if (isAlreadyMember) {
+      toast.error(`${student.name} is already a member or has a pending invite for "${targetProject?.title || 'this project'}"!`)
+      setSendingInvite(false)
+      setInviteTarget(null)
+      return
+    }
+
+    try {
+      const { projectsApi } = await import('@/api/projects.api')
+      const res = await projectsApi.inviteMember(projectId, targetStudentId)
+      if (res && res.status === 'info') {
+        toast.error(res.message || `${student.name} is already invited to this project!`)
+        setSendingInvite(false)
+        setInviteTarget(null)
+        return
+      }
+    } catch (err) {
+      console.warn('Backend invite call failed, updating local project store:', err)
+    }
+
+    // Add member to local project state and trigger celebration toast
+    const { addMemberToProject } = useProjectStore.getState()
+    addMemberToProject(projectId, {
+      id: targetStudentId,
+      name: student.name,
+      role: 'Collaborator'
+    })
+    setInvitedProjectPairs(prev => [...prev, pairKey])
+    setInvitedIds(prev => Array.from(new Set([...prev, student.id])))
+    toast.success(`Invite sent to ${student.name} for "${targetProject?.title || 'Project'}"! 🎉`)
+    setSendingInvite(false)
+    setInviteTarget(null)
   }
 
   const filteredTeammates = teammates.filter((t) => {
+    if (t.rollNumber === 'CSE21001' || t.name === 'Priti Jadhav') return false
     const matchesSearch = t.name.toLowerCase().includes(search.toLowerCase()) ||
                           t.department?.toLowerCase().includes(search.toLowerCase())
     const matchesYear = selectedYear === 'all' || t.year === Number(selectedYear)
@@ -57,12 +140,45 @@ export default function FindTeammates() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div>
-        <h2 className="text-xl font-extrabold text-white flex items-center gap-2">
-          <Sparkles size={22} className="text-indigo-400 animate-pulse" /> AI Teammate Matchmaker
-        </h2>
-        <p className="text-xs text-slate-400">ML vector cosine similarity matching to build complementary project teams</p>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <h2 className="text-xl font-extrabold text-white flex items-center gap-2">
+            <Sparkles size={22} className="text-indigo-400 animate-pulse" /> AI Teammate Matchmaker
+          </h2>
+          <p className="text-xs text-slate-400">ML vector cosine similarity matching to build complementary project teams</p>
+        </div>
+        {userProjects.length > 0 && (
+          <button
+            onClick={() => navigate('/student/projects')}
+            className="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold flex items-center gap-1.5 shadow-lg shadow-indigo-600/20 self-start sm:self-auto"
+          >
+            <FolderPlus size={15} /> My Projects ({userProjects.length})
+          </button>
+        )}
       </div>
+
+      {/* No Projects Notice Banner */}
+      {hasCheckedProjects && userProjects.length === 0 && (
+        <div className="p-4 rounded-2xl bg-gradient-to-r from-amber-500/10 via-[#0f172a] to-amber-500/5 border border-amber-500/30 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-xl">
+          <div className="flex items-start gap-3">
+            <div className="p-2 rounded-xl bg-amber-500/20 text-amber-400 shrink-0">
+              <AlertCircle size={20} />
+            </div>
+            <div>
+              <h3 className="text-xs font-bold text-amber-200">No Active Projects Created Yet</h3>
+              <p className="text-[11px] text-slate-300 mt-0.5">
+                You can browse AI teammate recommendations, but you need at least 1 project to send team invitations.
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={() => navigate('/student/projects')}
+            className="px-3.5 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-extrabold text-xs shrink-0 flex items-center gap-1.5 shadow-lg shadow-amber-500/20"
+          >
+            <FolderPlus size={14} /> + Create New Project
+          </button>
+        </div>
+      )}
 
       {/* AI Banner */}
       <div className="p-5 rounded-2xl bg-gradient-to-r from-indigo-900/50 via-[#0f172a] to-[#080d18] border border-indigo-500/30 flex items-start justify-between gap-4 shadow-xl">
@@ -165,11 +281,18 @@ export default function FindTeammates() {
                             {sk}
                           </span>
                         ))
+                      ) : tm.otherSkills && tm.otherSkills.length > 0 ? (
+                        tm.otherSkills.map((sk, idx) => (
+                          <span key={idx} className="px-2 py-0.5 rounded-md bg-slate-800 text-slate-400 border border-[#1e293b] text-[10px] font-semibold">
+                            {sk}
+                          </span>
+                        ))
                       ) : (
-                        <span className="text-[10px] text-slate-500">General Technical Proficiency</span>
+                        <span className="text-[10px] text-slate-500 italic">Verified Core Stack</span>
                       )}
                     </div>
                   </div>
+
                 </div>
 
                 {/* Footer Action */}
@@ -181,7 +304,7 @@ export default function FindTeammates() {
                     View Details
                   </button>
                   <button
-                    onClick={() => handleInvite(tm)}
+                    onClick={() => openInviteModal(tm)}
                     disabled={isInvited}
                     className={`px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-lg ${
                       isInvited
@@ -245,7 +368,7 @@ export default function FindTeammates() {
               </button>
               <button
                 onClick={() => {
-                  handleInvite(selectedStudentModal)
+                  openInviteModal(selectedStudentModal)
                   setSelectedStudentModal(null)
                 }}
                 className="px-4 py-2 text-xs font-bold bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl shadow-lg shadow-indigo-600/20"
@@ -256,6 +379,115 @@ export default function FindTeammates() {
           </div>
         </div>
       )}
+
+      {/* ── Project Picker Modal (shown when clicking Invite) ── */}
+      {inviteTarget && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
+          <div className="bg-[#0f172a] border border-[#1e293b] rounded-2xl p-6 max-w-sm w-full shadow-2xl space-y-5">
+            {/* Header */}
+            <div className="flex items-start justify-between">
+              <div>
+                <h3 className="text-base font-extrabold text-white">Send Team Invite</h3>
+                <p className="text-xs text-slate-400 mt-0.5">
+                  Inviting <span className="text-indigo-400 font-bold">{inviteTarget.name}</span>
+                </p>
+              </div>
+              <button onClick={() => setInviteTarget(null)} className="text-slate-500 hover:text-white">
+                <X size={18} />
+              </button>
+            </div>
+
+            {/* Invitee mini card */}
+            <div className="flex items-center gap-3 p-3 rounded-xl bg-[#080d18] border border-[#1e293b]">
+              <div className="w-10 h-10 rounded-full bg-indigo-600 text-white font-bold flex items-center justify-center text-sm shrink-0">
+                {inviteTarget.name[0]}
+              </div>
+              <div>
+                <p className="text-xs font-bold text-white">{inviteTarget.name}</p>
+                <p className="text-[10px] text-slate-400">{inviteTarget.department} · Yr {inviteTarget.year} · {inviteTarget.matchPercentage}% match</p>
+              </div>
+            </div>
+
+            {/* Project list */}
+            <div className="space-y-2">
+              <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Select Project to Invite To</p>
+              {loadingProjects ? (
+                <div className="flex items-center justify-center py-6">
+                  <Loader2 size={20} className="animate-spin text-indigo-400" />
+                </div>
+              ) : userProjects.length === 0 ? (
+                <div className="p-4 rounded-xl bg-[#080d18] border border-amber-500/20 text-center space-y-3">
+                  <div className="w-10 h-10 rounded-full bg-amber-500/10 text-amber-400 flex items-center justify-center mx-auto">
+                    <FolderPlus size={20} />
+                  </div>
+                  <div>
+                    <h4 className="text-xs font-bold text-white">No Active Projects Found</h4>
+                    <p className="text-[10px] text-slate-400 mt-1 leading-relaxed">
+                      Team invitations must be assigned to a project. Create a project first to invite teammates.
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => {
+                      setInviteTarget(null)
+                      navigate('/student/projects')
+                    }}
+                    className="w-full py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-extrabold text-xs shadow-lg shadow-amber-500/20 flex items-center justify-center gap-1.5"
+                  >
+                    <FolderPlus size={14} /> + Create New Project
+                  </button>
+                </div>
+              ) : (
+                <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
+                  {userProjects.map(proj => {
+                    const fullProj = storeProjects.find(p => p.id === proj.id)
+                    const targetId = inviteTarget.id || inviteTarget.rollNumber || 's1'
+                    const pairKey = `${targetId}_${proj.id}`
+                    const isAlreadyMember = fullProj?.members.some(m =>
+                      m.id === targetId ||
+                      m.name.toLowerCase() === inviteTarget.name.toLowerCase()
+                    ) || invitedProjectPairs.includes(pairKey)
+
+                    return (
+                      <button
+                        key={proj.id}
+                        onClick={() => handleInvite(inviteTarget, proj.id)}
+                        disabled={sendingInvite || isAlreadyMember}
+                        className={`w-full flex items-center justify-between p-3 rounded-xl border text-left transition-all group ${
+                          isAlreadyMember
+                            ? 'bg-slate-900/60 border-slate-800 text-slate-500 cursor-not-allowed'
+                            : 'bg-[#080d18] border-[#1e293b] hover:border-indigo-500/50 hover:bg-indigo-600/5 text-slate-200'
+                        }`}
+                      >
+                        <div>
+                          <span className="text-xs font-bold block">{proj.title}</span>
+                          {isAlreadyMember && (
+                            <span className="text-[10px] text-amber-400 font-semibold block mt-0.5">Already Invited / Member</span>
+                          )}
+                        </div>
+                        {isAlreadyMember ? (
+                          <Check size={14} className="text-amber-400 shrink-0" />
+                        ) : sendingInvite ? (
+                          <Loader2 size={14} className="animate-spin text-indigo-400 shrink-0" />
+                        ) : (
+                          <UserPlus size={14} className="text-slate-500 group-hover:text-indigo-400 shrink-0" />
+                        )}
+                      </button>
+                    )
+                  })}
+                </div>
+              )}
+            </div>
+
+            <button
+              onClick={() => setInviteTarget(null)}
+              className="w-full py-2 text-xs font-semibold text-slate-400 hover:text-white border border-[#1e293b] rounded-xl hover:border-slate-600 transition-colors"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
+

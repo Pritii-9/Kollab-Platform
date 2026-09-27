@@ -12,6 +12,7 @@ venv/
 .venv/
 backend/venv/
 backend/kollab.db
+*.db
 
 # Node / React
 node_modules/

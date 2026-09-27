@@ -28,10 +28,11 @@ class MatchmakerService:
         min_cgpa: float = 0.0,
         preferred_role: str = ""
     ) -> List[Dict[str, Any]]:
-        # Fetch all active student profiles with their skills
-        query = select(User).filter(User.role == "student", User.is_active == True)
+        # Fetch all active student profiles with their skills (exclude owner and CSE21001 Priti profile)
+        query = select(User).filter(User.role == "student", User.is_active == True, User.roll_number != "CSE21001")
         if owner_id:
-          query = query.filter(User.id != owner_id)
+            query = query.filter(User.id != owner_id)
+
           
         query = query.options(selectinload(User.skills))
         result = await session.execute(query)

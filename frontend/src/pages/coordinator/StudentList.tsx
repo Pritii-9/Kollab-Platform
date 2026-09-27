@@ -211,12 +211,14 @@ export default function StudentList() {
                     <PlacementStatusBadge status={student.placementStatus ?? 'Ineligible'} />
                   </td>
                   <td className="py-3 px-4 text-right">
-                    <button
-                      onClick={() => navigate(`/coordinator/students/${student.id}`)}
-                      className="px-3 py-1 rounded-lg bg-indigo-600/10 hover:bg-indigo-600/20 text-indigo-400 text-xs font-semibold border border-indigo-500/20"
-                    >
-                      View Timeline →
-                    </button>
+                    <div className="flex items-center justify-end gap-1.5">
+                      <button
+                        onClick={() => navigate(`/coordinator/students/${student.id}`)}
+                        className="px-3 py-1 rounded-lg bg-indigo-600/10 hover:bg-indigo-600 border border-indigo-500/20 text-indigo-400 hover:text-white text-xs font-semibold transition-all"
+                      >
+                        View Profile →
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}

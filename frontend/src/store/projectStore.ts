@@ -14,6 +14,7 @@ interface ProjectStore {
   createProject: (data: CreateProjectData, currentUserId?: string, currentUserName?: string) => Promise<Project>
   updateProjectProgress: (projectId: string, progress: number) => void
   addMemberToProject: (projectId: string, member: { id: string; name: string; role: string }) => void
+  deleteProject: (id: string) => Promise<void>
 }
 
 export const useProjectStore = create<ProjectStore>()(
@@ -109,6 +110,18 @@ export const useProjectStore = create<ProjectStore>()(
         }
       },
 
+      deleteProject: async (id: string) => {
+        try {
+          await projectsApi.deleteProject(id)
+        } catch (err: any) {
+          console.warn(`Failed to delete project ${id} on backend:`, err?.message)
+        }
+        set((state) => ({
+          projects: state.projects.filter((p) => p.id !== id),
+          activeProject: state.activeProject?.id === id ? null : state.activeProject
+        }))
+      },
+
       updateProjectProgress: (projectId: string, progress: number) => {
         set((state) => ({
           projects: state.projects.map((p) =>
@@ -144,3 +157,4 @@ export const useProjectStore = create<ProjectStore>()(
     }
   )
 )
+

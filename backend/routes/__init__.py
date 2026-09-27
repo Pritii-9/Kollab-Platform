@@ -7,6 +7,8 @@ from routes.reports import router as reports_router
 from routes.ai import router as ai_router
 from routes.resume import router as resume_router
 from routes.health import router as health_router
+from routes.notifications import router as notifications_router
+from routes.chat import router as chat_router
 
 __all__ = [
     "auth_router",
@@ -18,4 +20,6 @@ __all__ = [
     "ai_router",
     "resume_router",
     "health_router",
+    "notifications_router",
+    "chat_router",
 ]

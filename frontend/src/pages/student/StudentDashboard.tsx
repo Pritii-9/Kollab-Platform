@@ -15,6 +15,7 @@ export default function StudentDashboard() {
   const { projects, fetchProjects } = useProjectStore()
   const [loading, setLoading] = useState(false)
   const [readiness, setReadiness] = useState<PlacementReadinessResult | null>(null)
+  const [testHistory, setTestHistory] = useState<any[]>([])
 
   useEffect(() => {
     document.title = 'Dashboard — Kollab'
@@ -23,6 +24,10 @@ export default function StudentDashboard() {
       setReadiness(res)
     }).catch((err) => {
       console.warn('Readiness API error:', err)
+    })
+
+    import('@/api/tests.api').then(({ testsApi }) => {
+      testsApi.getMyTestHistory().then(setTestHistory).catch(() => {})
     })
   }, [])
 
@@ -97,8 +102,8 @@ export default function StudentDashboard() {
 
         <StatCard
           title="Proctored Tests Taken"
-          value={0}
-          subtitle="No tests completed yet"
+          value={testHistory.length}
+          subtitle={testHistory.length > 0 ? `${testHistory.length} proctored assessments completed` : "No tests completed yet"}
           icon={<ClipboardList size={20} />}
           iconBg="bg-violet-500/10 text-violet-400 border border-violet-500/20"
         />

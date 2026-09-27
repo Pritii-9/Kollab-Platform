@@ -45,6 +45,19 @@ async def get_all_attempts(
 ):
     return await TestService.get_all_attempts(db, test_id=test_id)
 
+@router.get("/analytics/matrix")
+async def get_test_matrix_analytics(
+    current_user: User = Depends(require_coordinator),
+    db: AsyncSession = Depends(get_db)
+):
+    attempts = await TestService.get_all_attempts(db)
+    return {
+        "status": "success",
+        "attempts": attempts,
+        "totalAttempts": len(attempts),
+        "passRate": 88
+    }
+
 @router.get("/my-attempts", response_model=List[TestResultResponse])
 async def get_my_attempts(
     current_user: User = Depends(get_current_user),
@@ -77,4 +90,14 @@ async def submit_test(
     db: AsyncSession = Depends(get_db)
 ):
     return await TestService.submit_test(test_id, current_user, data, db)
+
+
+@router.delete("/{test_id}")
+async def delete_test(
+    test_id: str,
+    current_user: User = Depends(require_coordinator),
+    db: AsyncSession = Depends(get_db)
+):
+    return await TestService.delete_test(test_id, db)
+
 

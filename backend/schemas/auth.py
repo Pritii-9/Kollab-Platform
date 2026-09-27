@@ -31,6 +31,8 @@ class UserResponse(BaseModel):
     token: Optional[str] = None
     trustScore: Optional[int] = 70
     placementStatus: Optional[str] = "Eligible"
+    resumeUrl: Optional[str] = None
+    resumeName: Optional[str] = None
 
     class Config:
         from_attributes = True

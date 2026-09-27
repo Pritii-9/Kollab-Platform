@@ -228,17 +228,21 @@ class StudentService:
             raise HTTPException(status_code=404, detail="Student not found")
 
         if updates.name is not None:
-            user.name = updates.name
+            if not updates.name.strip():
+                raise HTTPException(status_code=400, detail="Student name cannot be empty")
+            user.name = updates.name.strip()
         if updates.bio is not None:
-            user.bio = updates.bio
+            user.bio = updates.bio.strip()
         if updates.github is not None:
-            user.github = updates.github
+            user.github = updates.github.strip()
         if updates.linkedin is not None:
-            user.linkedin = updates.linkedin
+            user.linkedin = updates.linkedin.strip()
         if updates.cgpa is not None:
-            user.cgpa = updates.cgpa
+            if updates.cgpa < 0.0 or updates.cgpa > 10.0:
+                raise HTTPException(status_code=400, detail="CGPA must be between 0.0 and 10.0")
+            user.cgpa = round(updates.cgpa, 2)
         if updates.department is not None:
-            user.department = updates.department
+            user.department = updates.department.strip()
 
         await db.commit()
         return await StudentService.get_student_by_id(student_id, db)

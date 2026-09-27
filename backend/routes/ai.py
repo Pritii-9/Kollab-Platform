@@ -23,8 +23,11 @@ class QuestionGenerateRequest(BaseModel):
     difficulty: Optional[str] = "Medium"
     count: Optional[int] = 5
 
+from services.ai_service import AIService, check_ai_rate_limit
+
 @router.post("/enhance-bullet")
 async def enhance_bullet(data: BulletEnhanceRequest, current_user: User = Depends(get_current_user)):
+    check_ai_rate_limit(current_user.id)
     bullets = await AIService.enhance_resume_bullet(data.rawBullet, data.targetRole or "Full Stack Developer")
     return {"bullets": bullets}
 
@@ -39,5 +42,6 @@ async def recommend_roles(data: RoleRecommendRequest, current_user: User = Depen
 
 @router.post("/generate-questions")
 async def generate_questions(data: QuestionGenerateRequest, current_user: User = Depends(get_current_user)):
+    check_ai_rate_limit(current_user.id)
     questions = await AIService.generate_mcq_questions(data.skill, data.difficulty or "Medium", data.count or 5)
     return {"questions": questions}

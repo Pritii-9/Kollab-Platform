@@ -341,15 +341,27 @@ export default function Login() {
                   <button
                     type="button"
                     onClick={async () => {
+                      if (!regName.trim()) {
+                        toast.error('Please enter your full name')
+                        return
+                      }
+                      if (!regEmail.trim() || !regEmail.includes('@') || !regEmail.includes('.')) {
+                        toast.error('Please enter a valid college email address')
+                        return
+                      }
+                      if (!regRoll.trim()) {
+                        toast.error('Please enter your Roll Number')
+                        return
+                      }
                       try {
                         setIsLoading(true)
                         await authApi.registerStep1({
-                          name: regName,
-                          email: regEmail,
+                          name: regName.trim(),
+                          email: regEmail.trim().toLowerCase(),
                           department: regDept,
                           year: regYear,
                           batch: `${regDept} ${regBatch}`,
-                          rollNumber: regRoll
+                          rollNumber: regRoll.trim()
                         })
                         setRegStep(2)
                       } catch (err: any) {
@@ -446,13 +458,17 @@ export default function Login() {
                       type="button"
                       disabled={isLoading}
                       onClick={async () => {
+                        if (!regPassword || regPassword.length < 6) {
+                          toast.error('Password must be at least 6 characters long')
+                          return
+                        }
                         if (regPassword !== confirmPassword) {
                           toast.error('Passwords do not match')
                           return
                         }
                         const otpStr = otp.join('')
                         if (otpStr.length < 6) {
-                          toast.error('Please enter the 6-digit OTP')
+                          toast.error('Please enter the 6-digit OTP code')
                           return
                         }
                         
@@ -463,12 +479,12 @@ export default function Login() {
                             password: regPassword,
                             confirmPassword: confirmPassword
                           }, {
-                            name: regName,
-                            email: regEmail,
+                            name: regName.trim(),
+                            email: regEmail.trim().toLowerCase(),
                             department: regDept,
                             year: regYear,
                             batch: `${regDept} ${regBatch}`,
-                            rollNumber: regRoll
+                            rollNumber: regRoll.trim()
                           })
                           login(response.user, response.access_token)
                           navigate('/student/dashboard')

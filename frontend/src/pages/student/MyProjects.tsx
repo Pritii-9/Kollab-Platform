@@ -5,15 +5,17 @@ import { useProjectStore } from '@/store/projectStore'
 import { TECH_STACK_OPTIONS } from '@/utils/constants'
 import type { Project } from '@/types/project.types'
 import EmptyState from '@/components/shared/EmptyState'
-import { Plus, FolderKanban, Eye, X, Loader2 } from 'lucide-react'
+import { Plus, FolderKanban, Eye, X, Loader2, Trash2, AlertTriangle } from 'lucide-react'
 
 export default function MyProjects() {
   const navigate = useNavigate()
   const { user } = useAuthStore()
-  const { projects, fetchProjects, createProject, loading: isSubmitting } = useProjectStore()
+  const { projects, fetchProjects, createProject, deleteProject, loading: isSubmitting } = useProjectStore()
   const [activeTab, setActiveTab] = useState<'all' | 'Active' | 'Completed'>('all')
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
+  const [deleteTarget, setDeleteTarget] = useState<Project | null>(null)
+  const [isDeleting, setIsDeleting] = useState(false)
 
   // Modal Form
   const [title, setTitle] = useState('')
@@ -63,6 +65,17 @@ export default function MyProjects() {
       }
     } finally {
       setIsSaving(false)
+    }
+  }
+
+  const handleDeleteProject = async () => {
+    if (!deleteTarget || isDeleting) return
+    setIsDeleting(true)
+    try {
+      await deleteProject(deleteTarget.id)
+      setDeleteTarget(null)
+    } finally {
+      setIsDeleting(false)
     }
   }
 
@@ -154,9 +167,9 @@ export default function MyProjects() {
                   </button>
                   <button
                     onClick={() => navigate(`/student/projects/${proj.id}`)}
-                    className="py-2 px-3 rounded-xl bg-[#080d18] border border-[#1e293b] text-slate-300 hover:text-white text-xs font-semibold flex items-center gap-1.5"
+                    className="flex-1 py-2 px-3 rounded-xl bg-[#080d18] border border-[#1e293b] text-slate-300 hover:text-white text-xs font-semibold flex items-center justify-center gap-1.5"
                   >
-                    <Eye size={14} /> Detail
+                    <Eye size={14} /> View Details
                   </button>
                 </div>
               </div>
@@ -172,7 +185,7 @@ export default function MyProjects() {
         />
       )}
 
-      {/* Modal */}
+      {/* Create Modal */}
       {isModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
           <div className="bg-[#0f172a] border border-[#1e293b] rounded-2xl p-6 max-w-md w-full shadow-2xl relative space-y-4">
@@ -242,6 +255,48 @@ export default function MyProjects() {
           </div>
         </div>
       )}
+
+      {/* Delete Confirmation Modal */}
+      {deleteTarget && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
+          <div className="bg-[#0f172a] border border-[#1e293b] rounded-2xl p-6 max-w-md w-full shadow-2xl space-y-4">
+            <div className="flex items-center gap-3 text-rose-400">
+              <div className="p-2.5 rounded-xl bg-rose-500/10 border border-rose-500/20">
+                <AlertTriangle size={22} />
+              </div>
+              <div>
+                <h3 className="text-base font-extrabold text-white">Delete Project</h3>
+                <p className="text-xs text-slate-400">This action cannot be undone.</p>
+              </div>
+            </div>
+
+            <p className="text-xs text-slate-300 bg-[#080d18] p-3 rounded-xl border border-[#1e293b] leading-relaxed">
+              Are you sure you want to permanently delete <strong className="text-white">"{deleteTarget.title}"</strong> and all its associated tasks, milestones, and member updates?
+            </p>
+
+            <div className="flex justify-end gap-3 pt-2">
+              <button
+                type="button"
+                onClick={() => setDeleteTarget(null)}
+                disabled={isDeleting}
+                className="px-4 py-2 text-xs font-semibold text-slate-400 hover:text-white"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleDeleteProject}
+                disabled={isDeleting}
+                className="px-4 py-2 text-xs font-bold bg-rose-600 hover:bg-rose-500 text-white rounded-xl shadow-lg shadow-rose-600/20 flex items-center gap-2 disabled:opacity-50"
+              >
+                {isDeleting ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />}
+                {isDeleting ? 'Deleting...' : 'Confirm Delete'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
+

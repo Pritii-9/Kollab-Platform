@@ -25,19 +25,26 @@ from schemas.test import (
 class TestService:
     @staticmethod
     async def create_test(data: TestCreate, created_by_name: str, db: AsyncSession) -> TestResponse:
+        if not data.title or not data.title.strip():
+            raise HTTPException(status_code=400, detail="Test title cannot be empty")
+        if not data.skill_name or not data.skill_name.strip():
+            raise HTTPException(status_code=400, detail="Target skill name is required")
+        if data.time_limit < 1 or data.time_limit > 300:
+            raise HTTPException(status_code=400, detail="Time limit must be between 1 and 300 minutes")
+
         test_obj = Test(
-            title=data.title,
-            skill_name=data.skill_name,
-            difficulty=data.difficulty,
+            title=data.title.strip(),
+            skill_name=data.skill_name.strip(),
+            difficulty=data.difficulty or "Intermediate",
             time_limit=data.time_limit,
-            attempts=data.attempts,
+            attempts=data.attempts or 1,
             randomize_questions=data.randomize_questions,
             randomize_options=data.randomize_options,
             tab_detection=data.tab_detection,
             fullscreen_lock=data.fullscreen_lock,
-            assigned_to=data.assigned_to,
-            target_batch=data.target_batch,
-            target_year=data.target_year,
+            assigned_to=data.assigned_to or "batch",
+            target_batch=data.target_batch or "Batch A",
+            target_year=data.target_year or 4,
             due_date=data.due_date,
             created_by=created_by_name
         )
@@ -434,4 +441,25 @@ class TestService:
                 completedAt=att.completed_at or (att.created_at.strftime("%Y-%m-%d %H:%M") if att.created_at else "")
             ))
         return responses
+
+    @staticmethod
+    async def delete_test(test_id: str, db: AsyncSession):
+        from sqlalchemy import delete
+        from models.test import QuestionOption, Question, TestAttempt, Test
+        result = await db.execute(select(Test).filter(Test.id == test_id))
+        t = result.scalars().first()
+        if not t:
+            raise HTTPException(status_code=404, detail="Test not found")
+
+        q_ids_res = await db.execute(select(Question.id).filter(Question.test_id == test_id))
+        q_ids = q_ids_res.scalars().all()
+        if q_ids:
+            await db.execute(delete(QuestionOption).filter(QuestionOption.question_id.in_(q_ids)))
+            await db.execute(delete(Question).filter(Question.test_id == test_id))
+        
+        await db.execute(delete(TestAttempt).filter(TestAttempt.test_id == test_id))
+        await db.execute(delete(Test).filter(Test.id == test_id))
+        await db.commit()
+        return {"status": "success", "message": "Test deleted successfully"}
+
 

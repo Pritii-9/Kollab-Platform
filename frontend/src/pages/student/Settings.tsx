@@ -26,20 +26,40 @@ export default function Settings() {
     if (user) {
       setName(user.name || '')
       setBio(user.bio || '')
-      setCgpa((user as any)?.cgpa || '')
+      setCgpa((user as any)?.cgpa !== undefined && (user as any)?.cgpa !== null ? String((user as any)?.cgpa) : '')
       setGithub(user.github || '')
     }
   }, [user])
 
   const handleProfileSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    if (!name.trim()) {
+      toast.error('Full Name cannot be empty')
+      return
+    }
+    const parsedCgpa = parseFloat(cgpa)
+    if (isNaN(parsedCgpa) || parsedCgpa < 0 || parsedCgpa > 10) {
+      toast.error('CGPA must be a valid number between 0.00 and 10.00')
+      return
+    }
+
     try {
       const { studentsApi } = await import('@/api/students.api')
-      await studentsApi.updateProfile({ name, cgpa: parseFloat(cgpa) || 0, bio, github })
+      const updated = await studentsApi.updateProfile({ name: name.trim(), cgpa: parsedCgpa, bio, github })
+      if (updated) {
+        updateUser({
+          name: updated.name,
+          cgpa: updated.cgpa,
+          bio: updated.bio,
+          github: updated.github,
+          department: updated.department
+        } as any)
+      } else {
+        updateUser({ name: name.trim(), cgpa: parsedCgpa, bio, github } as any)
+      }
     } catch {
-      // fallback to local store update
+      updateUser({ name: name.trim(), cgpa: parsedCgpa, bio, github } as any)
     }
-    updateUser({ name, cgpa, bio, github } as any)
     toast.success('Profile saved successfully!')
   }
 

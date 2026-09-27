@@ -177,14 +177,20 @@ export default function BatchManagement() {
               <div className="flex items-center gap-2 pt-2 border-t border-[#1e293b]">
                 <button
                   onClick={() => navigate('/coordinator/students')}
-                  className="flex-1 py-1.5 px-3 rounded-xl bg-indigo-600/10 hover:bg-indigo-600/20 text-indigo-400 text-xs font-semibold flex items-center justify-center gap-1.5 border border-indigo-500/20"
+                  className="flex-1 py-1.5 px-3 rounded-xl bg-indigo-600/10 hover:bg-indigo-600/20 text-indigo-400 text-xs font-semibold flex items-center justify-center gap-1.5 border border-indigo-500/20 cursor-pointer"
                 >
                   <Eye size={14} /> View Students
                 </button>
-                <button className="p-1.5 rounded-xl bg-[#080d18] border border-[#1e293b] text-slate-400 hover:text-white">
-                  <Edit3 size={14} />
-                </button>
-                <button className="p-1.5 rounded-xl bg-[#080d18] border border-[#1e293b] text-slate-400 hover:text-rose-400">
+                <button
+                  onClick={() => {
+                    if (window.confirm(`Delete batch cohort '${batch.name}'?`)) {
+                      batchesApi.deleteBatch(batch.id).catch(() => {})
+                      setBatches(batches.filter(b => b.id !== batch.id))
+                    }
+                  }}
+                  title="Delete Batch Cohort"
+                  className="p-1.5 rounded-xl bg-[#080d18] border border-[#1e293b] text-slate-400 hover:text-rose-400 hover:border-rose-500/30 transition-all cursor-pointer"
+                >
                   <Archive size={14} />
                 </button>
               </div>

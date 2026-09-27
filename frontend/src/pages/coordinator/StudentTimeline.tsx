@@ -9,7 +9,7 @@ import PlacementStatusBadge from '@/components/student/PlacementStatusBadge'
 import SkillBadge from '@/components/student/SkillBadge'
 import AIInsightCard from '@/components/dashboard/AIInsightCard'
 import EmptyState from '@/components/shared/EmptyState'
-import { Bell, Download, ArrowLeft, CheckCircle2, Clock, Award, FolderKanban, Loader2, AlertCircle, AlertTriangle } from 'lucide-react'
+import { Bell, Download, ArrowLeft, CheckCircle2, Clock, Award, FolderKanban, Loader2, AlertCircle, AlertTriangle, Eye, FileText, X } from 'lucide-react'
 import toast from 'react-hot-toast'
 
 export default function StudentTimeline() {
@@ -21,6 +21,7 @@ export default function StudentTimeline() {
   const [testAttempts, setTestAttempts] = useState<TestAttemptRecord[]>([])
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState<'timeline' | 'skills' | 'projects' | 'tests'>('timeline')
+  const [showResumeModal, setShowResumeModal] = useState(false)
 
   useEffect(() => {
     let isMounted = true
@@ -114,14 +115,14 @@ export default function StudentTimeline() {
           <TrustScoreGauge score={student.trustScore} size={100} />
           <div className="flex flex-col gap-2">
             <button
-              onClick={() => toast.success(`Placement alert sent to ${student.name}`)}
-              className="px-3.5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold shadow-lg shadow-indigo-600/20 flex items-center gap-2"
+              onClick={() => setShowResumeModal(true)}
+              className="px-3.5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold shadow-lg shadow-indigo-600/20 flex items-center gap-2 cursor-pointer transition-all"
             >
-              <Bell size={14} /> Send Alert
+              <Eye size={14} /> Preview Resume
             </button>
             <button
               onClick={() => toast.success(`Exported timeline report for ${student.name}`)}
-              className="px-3.5 py-2 rounded-xl bg-[#080d18] border border-[#1e293b] hover:border-slate-600 text-slate-300 text-xs font-semibold flex items-center gap-2"
+              className="px-3.5 py-2 rounded-xl bg-[#080d18] border border-[#1e293b] hover:border-slate-600 text-slate-300 text-xs font-semibold flex items-center gap-2 cursor-pointer transition-all"
             >
               <Download size={14} /> Export Report
             </button>
@@ -260,13 +261,56 @@ export default function StudentTimeline() {
             <h4 className="text-sm font-bold text-white">Quick Coordinator Actions</h4>
             <button
               onClick={() => navigate('/coordinator/assign-test')}
-              className="w-full py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold shadow-lg shadow-indigo-600/20"
+              className="w-full py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold shadow-lg shadow-indigo-600/20 cursor-pointer"
             >
               Assign Recommended Skill Test
             </button>
           </div>
         </div>
       </div>
+
+      {/* Coordinator Student Resume Preview Modal */}
+      {showResumeModal && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 md:p-8 animate-fade-in">
+          <div className="w-full max-w-5xl h-[90vh] rounded-2xl bg-[#0f172a] border border-[#1e293b] shadow-2xl flex flex-col overflow-hidden">
+            <div className="px-6 py-4 bg-[#080d18] border-b border-[#1e293b] flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-lg bg-indigo-600/10 text-indigo-400 border border-indigo-500/20">
+                  <FileText size={18} />
+                </div>
+                <div>
+                  <h3 className="text-sm font-bold text-white">{student.name} — Resume Dossier</h3>
+                  <span className="text-[10px] text-emerald-400 font-medium">Verified Placement PDF · {student.rollNumber}</span>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={() => toast.success(`Downloaded resume for ${student.name}`)}
+                  className="px-4 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold flex items-center gap-1.5 shadow-md shadow-indigo-600/20 transition-all cursor-pointer"
+                >
+                  <Download size={14} /> Download PDF
+                </button>
+                <button
+                  onClick={() => setShowResumeModal(false)}
+                  className="p-2 rounded-xl bg-[#0f172a] hover:bg-rose-500/20 border border-[#1e293b] hover:border-rose-500/40 text-slate-400 hover:text-rose-400 transition-all cursor-pointer"
+                >
+                  <X size={18} />
+                </button>
+              </div>
+            </div>
+
+            <div className="flex-1 bg-[#050811] relative">
+              <iframe
+                src={student.resumeUrl || `/uploads/resumes/${student.id}/resume.pdf`}
+                title={`${student.name} Resume`}
+                className="w-full h-full"
+                style={{ border: 'none' }}
+              />
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

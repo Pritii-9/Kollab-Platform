@@ -60,6 +60,34 @@ export interface CreateProjectData {
   title: string
   description: string
   techStack: string[]
-  teamSize: number
-  timeline: string
+  teamSize?: number
+  timeline?: string
+}
+
+export interface MemberContact {
+  memberId: string
+  userId: string
+  name: string
+  role: string
+  avatar: string
+  email: string
+  rollNumber: string
+  batch: string
+  department: string
+  github: string
+  linkedin: string
+  trustScore: number
+}
+
+export type UpdateTag = 'done' | 'in_progress' | 'blocked' | 'review' | 'idea'
+
+export interface ProjectUpdate {
+  id: string
+  projectId: string
+  studentId: string
+  studentName: string
+  studentAvatar: string
+  tag: UpdateTag
+  message: string
+  createdAt: string
 }

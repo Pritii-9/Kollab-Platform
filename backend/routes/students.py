@@ -49,6 +49,10 @@ async def list_students(
 ):
     return await StudentService.get_students_roster(db, search, year, batch, placement_status)
 
+@router.get("/batch/{batch_id}", response_model=List[StudentDetailResponse])
+async def get_students_by_batch(batch_id: str, db: AsyncSession = Depends(get_db)):
+    return await StudentService.get_students_roster(db, batch=batch_id)
+
 @router.get("/teammates", response_model=List[StudentCardResponse])
 async def find_teammates(
     search: Optional[str] = None,
