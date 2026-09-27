@@ -53,20 +53,20 @@ services:
       redis:
         condition: service_healthy
     environment:
-      ENVIRONMENT: ${ENVIRONMENT:-production}
+      ENVIRONMENT: ${ENVIRONMENT:-development}
       DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-kollab_user}:${POSTGRES_PASSWORD:-kollab_pass}@db:5432/${POSTGRES_DB:-kollab}
       REDIS_URL: redis://redis:6379/0
-      SECRET_KEY: ${SECRET_KEY}
-      GROQ_API_KEY: ${GROQ_API_KEY}
+      SECRET_KEY: ${SECRET_KEY:-kollab-dev-only-secret-key-must-change-in-prod-min32chars}
+      GROQ_API_KEY: ${GROQ_API_KEY:-""}
       GROQ_MODEL: ${GROQ_MODEL:-llama-3.1-70b-versatile}
-      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID}
-      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY}
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID:-""}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY:-""}
       AWS_REGION: ${AWS_REGION:-ap-south-1}
       S3_BUCKET_NAME: ${S3_BUCKET_NAME:-kollab-resumes-bucket}
       MAIL_SERVER: ${MAIL_SERVER:-smtp.gmail.com}
       MAIL_PORT: ${MAIL_PORT:-587}
-      MAIL_USERNAME: ${MAIL_USERNAME}
-      MAIL_PASSWORD: ${MAIL_PASSWORD}
+      MAIL_USERNAME: ${MAIL_USERNAME:-""}
+      MAIL_PASSWORD: ${MAIL_PASSWORD:-""}
       MAIL_USE_TLS: ${MAIL_USE_TLS:-true}
       BACKEND_CORS_ORIGINS: '["http://localhost", "http://localhost:80", "http://localhost:5173", "http://localhost:5000"]'
     networks:

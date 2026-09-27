@@ -1,29 +1,31 @@
 # Kollab Platform 🚀
 
-**Kollab** is an AI-powered collaborative student placement & project management platform designed to track peer project velocity, proctor skill assessments, analyze skill gaps, and prepare students for campus placement drives.
+**Kollab** is an AI-powered collaborative student placement, proctored assessment & project management platform designed to track peer project velocity, proctor skill assessments, analyze skill gaps, broadcast department updates, and prepare students for placement drives.
 
 ---
 
 ## 🌟 Key Features
 
-### 1. 📁 Persistent Collaborative Projects
-- Create and manage team projects with persistent state across sessions.
-- Assign tech stacks, track milestone completion, and manage project member roles.
-- View detailed project overview, task breakdown, and team rosters without placeholder fallbacks.
+### 1. 🛡️ Proctored Skill Assessments & AI Prompt Engine
+- **LLM Directives & Presets**: Configure custom AI test focus areas using 1-click prompt presets (*Async & JWT Auth*, *System Design*, *Data Structures*, *SQL Indexing*, *REST Security*).
+- **Anti-Cheat Proctor Controls**: Randomized question/choice order, strict fullscreen enforcement, and automated tab-switch warning limits.
+- **Live Deployment Feed & Telemetry**: Instant database synchronization showing live active test deployments, submission counters, and verified pass rates.
 
-### 2. 📋 Proctored Sprint Kanban Workspace
-- Project-scoped Kanban boards featuring **Backlog**, **In Progress**, **In Review**, and **Done** columns.
-- Interactive task creation with priority tags (`High`, `Medium`, `Low`) and assignee tracking.
-- Starts clean with 0 pre-populated tasks for newly created projects.
+### 2. 📢 Department Broadcast & Fan-Out Announcements
+- **Cohort Targeting**: Coordinators can broadcast department-wide announcements targeted by academic branch (*CSE*, *IT*, *AI&DS*, *AIML*) or year.
+- **Real-Time Student Inbox**: Automated notification fan-out delivering alerts to student header badges with unread counters and 1-click read state.
 
-### 3. 🤖 AI Placement Career Suite
-- **AI Resume Action Bullet Generator**: Transforms project descriptions into STAR-formatted high-impact resume bullets.
-- **Skill Gap Analyzer**: Compares verified student badges against Tier 1 tech company job descriptions.
-- **Best Role Match Finder**: AI role compatibility scoring calculated from verified skills and project telemetry.
+### 3. 📁 Persistent Collaborative Projects & Proctored Kanban
+- **Project-Scoped Kanban**: Track sprint tasks across **Backlog**, **In Progress**, **In Review**, and **Done** columns with priority badges and assignees.
+- **Persistent Database Sync**: Real-time project creation, member role management, tech stack tagging, and progress tracking.
 
-### 4. 🛡️ Anti-Cheat Proctored Assessments
-- Proctored MCQ test engine with full screen lock, timer countdowns, and automated tab-switch telemetry detection.
-- Automated score verification and skill badge issuance.
+### 4. 🤖 AI Placement Career Suite & Resume Action Generator
+- **AI Action Bullet Generator**: Transforms project descriptions into STAR-formatted high-impact resume bullets.
+- **Skill Gap Analyzer**: Compares verified student badges against Tier 1 tech company job requirements.
+- **Role Match Compatibility**: AI role readiness scoring calculated from verified assessment scores and project velocity.
+
+### 5. 👥 Admin Control Center & Live Student Directory
+- **Batch & Student Management**: Live management of student cohorts, dynamic profile editing, roll number verification, and department status tracking.
 
 ---
 
@@ -31,14 +33,75 @@
 
 | Layer | Technology |
 | :--- | :--- |
-| **Frontend UI** | React 18, TypeScript, Vite, TailwindCSS |
+| **Frontend UI** | React 18, TypeScript, Vite, TailwindCSS, Lucide Icons |
 | **State Management** | Zustand (with `persist` local storage & API sync) |
-| **Icons & Visuals** | Lucide React, Recharts |
-| **Backend API** | Python, FastAPI, Async SQLAlchemy, Pydantic |
-| **Database** | SQLite / PostgreSQL (Async Engine) |
+| **Backend API** | Python 3.11, FastAPI, Async SQLAlchemy, Pydantic v2 |
+| **Caching & Rate Limit** | Redis 7 (Alpine), sliding-window rate limiting |
+| **Database** | PostgreSQL 15 (with `pgvector` extension) / SQLite |
+| **Containerization** | Docker, Docker Compose, Nginx |
 | **Cloud Infrastructure** | AWS (App Runner, RDS PostgreSQL, S3 Bucket) |
-| **Infrastructure as Code** | HashiCorp Terraform |
-| **Security & Auth** | Passlib (Bcrypt), PyJWT authentication middleware |
+| **Infrastructure as Code**| HashiCorp Terraform |
+
+---
+
+## 🐳 Docker Deployment (Recommended)
+
+Kollab is fully containerized with multi-stage Docker builds and an Nginx reverse proxy.
+
+### 1-Command Local Launch:
+```bash
+# Clone repository
+git clone https://github.com/Pritii-9/Kollab-Platform.git
+cd Kollab-Platform
+
+# Copy environment template
+cp .env.example .env
+
+# Build and start all services (Frontend, Backend, Postgres, Redis)
+docker compose up -d --build
+```
+
+- **Frontend App**: `http://localhost`
+- **FastAPI Backend Docs**: `http://localhost:5000/docs`
+- **PostgreSQL Database**: `localhost:5432`
+- **Redis Cache**: `localhost:6379`
+
+---
+
+## ⚡ Local Development Setup (Manual)
+
+### 1. Backend Setup (FastAPI)
+
+```bash
+cd backend
+
+# Create & activate virtual environment
+python -m venv venv
+.\venv\Scripts\activate       # Windows
+# source venv/bin/activate    # macOS/Linux
+
+# Install dependencies
+pip install -r requirements.txt
+
+# Run FastAPI server
+python main.py
+```
+FastAPI interactive docs will be available at `http://localhost:5000/docs`.
+
+---
+
+### 2. Frontend Setup (React + Vite)
+
+```bash
+cd frontend
+
+# Install Node dependencies
+npm install
+
+# Start Vite development server
+npm run dev
+```
+Application will be running at `http://localhost:5173`.
 
 ---
 
@@ -47,127 +110,46 @@
 ```
 Kollab-Platform/
 ├── backend/                  # FastAPI Backend API Server
-│   ├── models/               # SQLAlchemy Async Models (User, Project, Task, Test, etc.)
-│   ├── routes/               # API Endpoint Controllers (/api/projects, /api/ai, /api/tests)
+│   ├── models/               # SQLAlchemy Async Models (User, Project, Task, Test, Announcement)
+│   ├── routes/               # API Endpoint Controllers (/api/projects, /api/tests, /api/announcements)
 │   ├── schemas/              # Pydantic Request/Response Validation Schemas
-│   ├── services/             # Business Logic & AI Services
-│   ├── utils/                # Database Seeders, Security & JWT Helpers
-│   ├── main.py               # FastAPI App Entrypoint
-│   └── requirements.txt      # Python Dependencies
+│   ├── services/             # Business Logic & AI Prompt Services
+│   ├── utils/                # JWT Helpers, Rate Limiting & Database Seeders
+│   ├── Dockerfile            # Python 3.11 Multi-stage Dockerfile
+│   └── main.py               # FastAPI App Entrypoint
 ├── frontend/                 # Vite + React Frontend Application
 │   ├── src/
-│   │   ├── api/              # Axios Client & API Services
-│   │   ├── components/       # Reusable UI Components & Charts
-│   │   ├── pages/            # Student & Coordinator Page Views
-│   │   ├── store/            # Zustand Persistent Stores (projectStore, kanbanStore, authStore)
+│   │   ├── api/              # Axios Client & Service Modules
+│   │   ├── components/       # Reusable UI Components & Navbars
+│   │   ├── pages/            # Coordinator & Student Page Views
+│   │   ├── store/            # Zustand Stores (authStore, kanbanStore, projectStore)
 │   │   └── types/            # TypeScript Interfaces
+│   ├── nginx.conf            # Nginx SPA & API Reverse Proxy Configuration
+│   ├── Dockerfile            # React + Nginx Alpine Dockerfile
 │   └── package.json          # Node.js Dependencies & Build Scripts
 ├── infra/
 │   └── terraform/            # Terraform AWS Provisioning (App Runner, RDS, S3)
-│       ├── main.tf           # AWS Provider, S3, RDS & App Runner resources
-│       ├── variables.tf      # Environment & Region Configuration
-│       ├── outputs.tf        # Service URL & Endpoint Exports
-│       └── terraform.tfvars.example
+├── docker-compose.yml        # Docker Compose Stack (DB, Redis, Backend, Frontend)
+├── .env.example              # Environment Variable Template
 └── README.md                 # Platform Documentation
-```
-
----
-
-## ⚡ Quick Start Guide
-
-### Prerequisites
-- **Node.js**: v18.0.0 or higher
-- **Python**: v3.10 or higher
-- **Terraform**: v1.5+ *(Optional for Cloud Deployment)*
-
----
-
-### 1. Backend Setup (FastAPI)
-
-```bash
-# Navigate to backend directory
-cd backend
-
-# Create virtual environment
-python -m venv venv
-
-# Activate virtual environment (Windows)
-.\venv\Scripts\activate
-
-# Activate virtual environment (macOS/Linux)
-# source venv/bin/activate
-
-# Install dependencies
-pip install -r requirements.txt
-
-# Launch FastAPI server (runs on http://localhost:5000)
-python main.py
-```
-
-FastAPI interactive documentation will be available at: `http://localhost:5000/docs`
-
----
-
-### 2. Frontend Setup (React + Vite)
-
-```bash
-# Navigate to frontend directory
-cd frontend
-
-# Install Node dependencies
-npm install
-
-# Start Vite development server (runs on http://localhost:5173)
-npm run dev
 ```
 
 ---
 
 ## ☁️ AWS Infrastructure Deployment (Terraform)
 
-Kollab includes production-ready HashiCorp Terraform configuration for automated deployment on Amazon Web Services (AWS).
-
-### Provisioned AWS Resources:
-- **AWS App Runner**: Managed container service hosting the FastAPI backend.
-- **AWS RDS (PostgreSQL)**: Fully managed relational database instance.
-- **AWS S3 Bucket**: Secure storage for student resume PDFs and avatar uploads.
-
-### Terraform Deployment Commands:
+Automated cloud deployment setup is included under `infra/terraform/`:
 
 ```bash
-# Navigate to terraform configuration directory
 cd infra/terraform
-
-# Initialize Terraform AWS provider plugins
 terraform init
-
-# Create your terraform.tfvars file
 cp terraform.tfvars.example terraform.tfvars
-
-# Preview planned cloud infrastructure creation
 terraform plan
-
-# Apply and provision resources on AWS
 terraform apply
 ```
 
-Upon completion, Terraform outputs your live backend **App Runner Service URL** and database endpoints.
-
 ---
 
-## 📦 Building for Production
-
-To compile and build the production bundle:
-
-```bash
-cd frontend
-npm run build
-```
-
-The compiled assets will be generated inside `frontend/dist/`.
-
----
-
-## 🤝 Contributing & License
+## 🤝 License & Credits
 
 Developed for the **Kollab Platform** project. Distributed under the MIT License.
