@@ -14,18 +14,19 @@ export default function TakeTest() {
   const [warningBanner, setWarningBanner] = useState<string | null>(null)
   const [isSubmitModalOpen, setIsSubmitModalOpen] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
+  const [isSubmitting, setIsSubmitting] = useState(false)   // ← P0: prevents double-submit
   const [error, setError] = useState<string | null>(null)
   const [startTime] = useState<number>(Date.now())
 
   useEffect(() => {
     document.title = 'Proctored Test — Kollab'
-    
+
     if (testId) {
       testsApi.getTestById(testId)
         .then((test) => {
           initTest(test.id, test.title, test.questions, test.timeLimit)
-          
-          // Restore draft answers if page refreshed
+
+          // Restore draft answers if page refreshed (P0: localStorage answer auto-save)
           try {
             const savedDraft = localStorage.getItem(`kollab_draft_${testId}`)
             if (savedDraft) {
@@ -41,7 +42,7 @@ export default function TakeTest() {
           }
 
           setIsLoading(false)
-          
+
           // Request fullscreen
           if (document.documentElement.requestFullscreen) {
             document.documentElement.requestFullscreen().catch(() => {})
@@ -54,15 +55,23 @@ export default function TakeTest() {
         })
     }
 
+    // P0: beforeunload guard — warn student before closing/refreshing during exam
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      e.preventDefault()
+      e.returnValue = 'Your test is still in progress. Leaving now will NOT auto-submit. Are you sure?'
+      return e.returnValue
+    }
+    window.addEventListener('beforeunload', handleBeforeUnload)
+
     // Visibility change handler for tab switch detection
     const handleVisibilityChange = () => {
       if (document.hidden) {
         useTestStore.getState().incrementTabSwitch()
         const currentCount = useTestStore.getState().tabSwitches
         if (currentCount === 1) {
-          setWarningBanner('Warning (1/3): Tab switch detected! Remaining switches will cause automatic test submission.')
+          setWarningBanner('⚠️ Warning (1/3): Tab switch detected! Two more will auto-submit your test.')
         } else if (currentCount === 2) {
-          setWarningBanner('Final Warning (2/3): One more tab switch will automatically terminate and submit your test.')
+          setWarningBanner('🚨 Final Warning (2/3): ONE more tab switch will immediately submit your test!')
         } else if (currentCount >= 3) {
           handleConfirmSubmit()
         }
@@ -70,14 +79,20 @@ export default function TakeTest() {
     }
 
     document.addEventListener('visibilitychange', handleVisibilityChange)
-    return () => document.removeEventListener('visibilitychange', handleVisibilityChange)
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange)
+      window.removeEventListener('beforeunload', handleBeforeUnload)
+    }
   }, [testId])
 
-  // Save draft answers to localStorage continuously
+  // P0: Save draft answers to localStorage on every answer change
   useEffect(() => {
     if (testId && Object.keys(answers).length > 0) {
       try {
-        localStorage.setItem(`kollab_draft_${testId}`, JSON.stringify({ answers }))
+        localStorage.setItem(`kollab_draft_${testId}`, JSON.stringify({
+          answers,
+          savedAt: Date.now()
+        }))
       } catch (e) {
         console.warn('LocalStorage draft save error:', e)
       }
@@ -92,11 +107,14 @@ export default function TakeTest() {
     return () => clearInterval(interval)
   }, [])
 
+  // P0: Idempotency guard — prevents double-submission on slow networks
   const handleConfirmSubmit = async () => {
+    if (isSubmitting) return   // ← guard
+    setIsSubmitting(true)
     submitTest()
     setIsSubmitModalOpen(false)
-    
-    // Clear auto-saved draft
+
+    // Clear auto-saved draft on successful submission
     if (testId) {
       localStorage.removeItem(`kollab_draft_${testId}`)
     }
@@ -104,11 +122,11 @@ export default function TakeTest() {
     if (document.fullscreenElement) {
       document.exitFullscreen().catch(() => {})
     }
-    
+
     try {
       const state = useTestStore.getState()
       const elapsedSeconds = Math.max(10, Math.floor((Date.now() - startTime) / 1000))
-      
+
       const result = await testsApi.submitTest(testId as string, {
         answers: state.answers,
         timeTaken: elapsedSeconds,
@@ -118,8 +136,11 @@ export default function TakeTest() {
     } catch (err) {
       console.error('Submit failed', err)
       navigate(`/student/test/${testId}/result`)
+    } finally {
+      setIsSubmitting(false)
     }
   }
+
 
   if (isLoading) {
     return (
@@ -279,9 +300,13 @@ export default function TakeTest() {
         ) : (
           <button
             onClick={() => setIsSubmitModalOpen(true)}
-            className="px-5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold shadow-lg shadow-emerald-600/20 flex items-center gap-1.5"
+            disabled={isSubmitting}
+            className="px-5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 disabled:opacity-60 text-white text-xs font-bold shadow-lg shadow-emerald-600/20 flex items-center gap-1.5"
           >
-            <CheckCircle size={14} /> Submit Test
+            {isSubmitting
+              ? <><span className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" /> Submitting...</>
+              : <><CheckCircle size={14} /> Submit Test</>
+            }
           </button>
         )}
       </footer>

@@ -32,6 +32,19 @@ class TestService:
         if data.time_limit < 1 or data.time_limit > 300:
             raise HTTPException(status_code=400, detail="Time limit must be between 1 and 300 minutes")
 
+        # P1: Past due-date validation — coordinators cannot set past deadlines
+        if data.due_date:
+            try:
+                from datetime import date
+                due = date.fromisoformat(str(data.due_date))
+                if due < date.today():
+                    raise HTTPException(
+                        status_code=400,
+                        detail=f"Due date '{data.due_date}' is in the past. Please set a future deadline."
+                    )
+            except ValueError:
+                raise HTTPException(status_code=400, detail="Invalid due date format. Expected YYYY-MM-DD.")
+
         test_obj = Test(
             title=data.title.strip(),
             skill_name=data.skill_name.strip(),
@@ -223,6 +236,21 @@ class TestService:
         test_obj = result.scalars().first()
         if not test_obj:
             raise HTTPException(status_code=404, detail="Test not found")
+
+        # P0: Idempotency — prevent duplicate submissions within 30 seconds
+        from datetime import datetime, timezone, timedelta
+        recent_cutoff = datetime.now(timezone.utc) - timedelta(seconds=30)
+        dup_check = await db.execute(
+            select(TestAttempt)
+            .filter(TestAttempt.test_id == test_id)
+            .filter(TestAttempt.student_id == student.id)
+            .filter(TestAttempt.created_at >= recent_cutoff)
+        )
+        if dup_check.scalars().first():
+            raise HTTPException(
+                status_code=409,
+                detail="Duplicate submission detected. Your previous submission is being processed."
+            )
 
         total = len(test_obj.questions)
         correct_count = 0

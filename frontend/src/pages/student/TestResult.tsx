@@ -1,12 +1,32 @@
 import { useEffect } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
-import { CheckCircle2, XCircle, Award, ArrowRight, ShieldCheck, AlertCircle } from 'lucide-react'
+import { CheckCircle2, XCircle, Award, ArrowRight, ShieldCheck, AlertCircle, BookOpen, Target } from 'lucide-react'
 import type { TestResult } from '@/types/test.types'
+
+const TOPIC_STUDY_LINKS: Record<string, string> = {
+  'async': 'MDN Async/Await Guide',
+  'jwt': 'JWT.io Introduction',
+  'sql': 'SQLZoo Interactive SQL',
+  'system': 'Grokking System Design',
+  'data': 'LeetCode DSA Patterns',
+  'react': 'React Official Docs',
+  'api': 'REST API Design Guide',
+  'docker': 'Docker Getting Started',
+}
+
+function getStudyRecommendations(topicBreakdown: TestResult['topicBreakdown']): string[] {
+  if (!topicBreakdown) return []
+  return topicBreakdown
+    .filter(t => t.percentage < 60)
+    .sort((a, b) => a.percentage - b.percentage)
+    .slice(0, 3)
+    .map(t => t.topic)
+}
 
 export default function TestResult() {
   const navigate = useNavigate()
   const location = useLocation()
-  
+
   const result = location.state?.result as TestResult | undefined
 
   useEffect(() => {
@@ -34,10 +54,12 @@ export default function TestResult() {
   }
 
   const passed = result.percentage >= 70
+  const weakTopics = getStudyRecommendations(result.topicBreakdown)
 
   const formatMinutes = (seconds: number) => {
     const mins = Math.floor(seconds / 60)
-    return `${mins} mins`
+    const secs = seconds % 60
+    return `${mins}m ${secs}s`
   }
 
   return (
@@ -62,13 +84,36 @@ export default function TestResult() {
         {/* Score Ring */}
         <div className="p-6 rounded-2xl bg-[#080d18] border border-[#1e293b] inline-block mx-auto min-w-[200px]">
           <span className="text-4xl font-extrabold text-white">{result.score} / {result.total}</span>
-          <span className="block text-xs font-bold text-emerald-400 mt-1">{result.percentage}% Final Score</span>
+          <span className={`block text-xs font-bold mt-1 ${passed ? 'text-emerald-400' : 'text-rose-400'}`}>
+            {result.percentage}% Final Score — {passed ? '✓ PASSED' : '✗ BELOW CUTOFF (70%)'}
+          </span>
         </div>
 
         {/* Badge Earned Alert */}
         {passed && (
           <div className="p-4 rounded-xl bg-gradient-to-r from-indigo-900/40 to-emerald-900/40 border border-emerald-500/30 flex items-center justify-center gap-3 text-emerald-300 text-xs font-bold">
             <Award size={20} /> Verified Badge Earned: {result.badgeEarned}
+          </div>
+        )}
+
+        {/* P1: Recommended Study Topics (shown only on FAIL) */}
+        {!passed && weakTopics.length > 0 && (
+          <div className="p-4 rounded-xl bg-amber-500/5 border border-amber-500/20 text-left space-y-2">
+            <h4 className="text-xs font-bold text-amber-400 uppercase tracking-wider flex items-center gap-1.5">
+              <BookOpen size={13} /> Recommended Topics to Study Before Retake
+            </h4>
+            <div className="space-y-1.5">
+              {weakTopics.map((topic, idx) => (
+                <div key={idx} className="flex items-center gap-2 text-xs text-slate-300">
+                  <Target size={11} className="text-amber-400 shrink-0" />
+                  <span className="font-semibold">{topic}</span>
+                  <span className="text-slate-500">— Focus on practical examples and edge cases</span>
+                </div>
+              ))}
+            </div>
+            <p className="text-[10px] text-slate-500 pt-1">
+              Study these topics then retake for a higher score and verified badge.
+            </p>
           </div>
         )}
 
@@ -80,7 +125,9 @@ export default function TestResult() {
           </div>
           <div>
             <span className="text-slate-400 block text-[10px]">Tab Switches</span>
-            <span className="font-bold text-emerald-400">{result.tabSwitches} Detected</span>
+            <span className={`font-bold ${result.tabSwitches > 0 ? 'text-amber-400' : 'text-emerald-400'}`}>
+              {result.tabSwitches} Detected
+            </span>
           </div>
           <div>
             <span className="text-slate-400 block text-[10px]">Proctoring Status</span>
@@ -97,11 +144,16 @@ export default function TestResult() {
             {result.topicBreakdown.map((tb, idx) => (
               <div key={idx} className="space-y-1 text-xs">
                 <div className="flex justify-between">
-                  <span className="text-slate-300 font-medium">{tb.topic}</span>
-                  <span className="font-bold text-white">{tb.percentage}%</span>
+                  <span className={`font-medium ${tb.percentage < 60 ? 'text-rose-300' : 'text-slate-300'}`}>{tb.topic}</span>
+                  <span className={`font-bold ${tb.percentage >= 70 ? 'text-emerald-400' : tb.percentage >= 50 ? 'text-amber-400' : 'text-rose-400'}`}>
+                    {tb.percentage}%
+                  </span>
                 </div>
                 <div className="w-full bg-slate-800 h-2 rounded-full overflow-hidden">
-                  <div className="bg-indigo-500 h-full rounded-full" style={{ width: `${tb.percentage}%` }} />
+                  <div
+                    className={`h-full rounded-full ${tb.percentage >= 70 ? 'bg-emerald-500' : tb.percentage >= 50 ? 'bg-amber-500' : 'bg-rose-500'}`}
+                    style={{ width: `${tb.percentage}%` }}
+                  />
                 </div>
               </div>
             ))}
@@ -111,17 +163,26 @@ export default function TestResult() {
         {/* Actions */}
         <div className="flex items-center gap-4 pt-4 border-t border-[#1e293b]">
           <button
-            onClick={() => navigate('/student/dashboard')}
+            onClick={() => navigate('/student/assessments')}
             className="flex-1 py-3 rounded-xl bg-[#080d18] border border-[#1e293b] text-slate-300 hover:text-white font-bold text-xs"
           >
-            Go to Dashboard
+            Back to Assessments
           </button>
-          <button
-            onClick={() => navigate('/student/profile')}
-            className="flex-1 py-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs shadow-lg shadow-indigo-600/20 flex items-center justify-center gap-2"
-          >
-            View Skill Badge Profile <ArrowRight size={16} />
-          </button>
+          {passed ? (
+            <button
+              onClick={() => navigate('/student/profile')}
+              className="flex-1 py-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs shadow-lg shadow-indigo-600/20 flex items-center justify-center gap-2"
+            >
+              View Skill Badge Profile <ArrowRight size={16} />
+            </button>
+          ) : (
+            <button
+              onClick={() => navigate('/student/dashboard')}
+              className="flex-1 py-3 rounded-xl bg-amber-600/80 hover:bg-amber-600 text-white font-bold text-xs shadow-lg flex items-center justify-center gap-2"
+            >
+              <BookOpen size={14} /> Study & Retake
+            </button>
+          )}
         </div>
       </div>
     </div>

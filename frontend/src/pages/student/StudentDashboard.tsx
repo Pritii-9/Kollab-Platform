@@ -78,6 +78,40 @@ export default function StudentDashboard() {
         </div>
       </div>
 
+      {/* P1: Onboarding banner — shown for new students with no skills or projects yet */}
+      {verifiedSkills.length === 0 && projects.length === 0 && (
+        <div className="p-5 rounded-2xl bg-gradient-to-r from-indigo-900/30 to-violet-900/30 border border-indigo-500/20 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div className="flex items-start gap-3">
+            <div className="w-9 h-9 rounded-xl bg-indigo-600/20 text-indigo-400 border border-indigo-500/20 flex items-center justify-center shrink-0">
+              <Compass size={18} />
+            </div>
+            <div>
+              <p className="text-sm font-extrabold text-white">🚀 Welcome to Kollab! Let's set you up.</p>
+              <p className="text-xs text-slate-400 mt-0.5">Complete these 3 steps to activate your placement profile and start earning skill badges.</p>
+              <div className="flex flex-wrap gap-2 mt-2">
+                <span className="px-2.5 py-1 rounded-lg bg-[#0f172a] border border-[#1e293b] text-[10px] font-semibold text-slate-300 flex items-center gap-1">
+                  <CheckCircle2 size={10} className="text-slate-500" /> Join or Create a Project
+                </span>
+                <span className="px-2.5 py-1 rounded-lg bg-[#0f172a] border border-[#1e293b] text-[10px] font-semibold text-slate-300 flex items-center gap-1">
+                  <CheckCircle2 size={10} className="text-slate-500" /> Take a Skill Assessment
+                </span>
+                <span className="px-2.5 py-1 rounded-lg bg-[#0f172a] border border-[#1e293b] text-[10px] font-semibold text-slate-300 flex items-center gap-1">
+                  <CheckCircle2 size={10} className="text-slate-500" /> Complete Your Profile
+                </span>
+              </div>
+            </div>
+          </div>
+          <div className="flex items-center gap-2 shrink-0">
+            <button
+              onClick={() => navigate('/student/projects')}
+              className="px-3 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs shadow-lg shadow-indigo-600/20"
+            >
+              Get Started →
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* 4 Stat Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard title="Trust Score" value={user?.trustScore || 85} subtitle={user?.trustScore ? `Trust score rating` : "Verified rating"} icon={<Award size={20} />}>

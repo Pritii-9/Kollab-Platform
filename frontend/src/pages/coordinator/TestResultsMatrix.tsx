@@ -71,9 +71,19 @@ export default function TestResultsMatrix() {
 
   const totalAttemptsCount = attempts.length
   const passedCount = attempts.filter((a) => a.passed).length
-  const passRate = totalAttemptsCount > 0 ? Math.round((passedCount / totalAttemptsCount) * 100) : 0
+
+  // P1: Unique student pass rate (de-duped by studentId so one student submitting 5 times doesn't skew the rate)
+  const uniqueStudentIds = Array.from(new Set(attempts.map(a => a.studentId)))
+  const uniqueStudentsPassed = uniqueStudentIds.filter(sid =>
+    attempts.filter(a => a.studentId === sid).some(a => a.passed)
+  ).length
+  const uniquePassRate = uniqueStudentIds.length > 0
+    ? Math.round((uniqueStudentsPassed / uniqueStudentIds.length) * 100)
+    : 0
+
   const avgScore = totalAttemptsCount > 0 ? Math.round(attempts.reduce((acc, a) => acc + a.percentage, 0) / totalAttemptsCount) : 0
   const flaggedCount = attempts.filter((a) => a.tabSwitches > 0).length
+
 
   const handleExportCSV = () => {
     const headers = ['Student Name', 'Roll Number', 'Batch', 'Test Title', 'Skill', 'Score', 'Percentage', 'Status', 'Tab Switches', 'Date']
@@ -139,9 +149,9 @@ export default function TestResultsMatrix() {
           iconBg="bg-emerald-500/10 text-emerald-400 border border-emerald-500/20"
         />
         <StatCard
-          title="Pass Rate"
-          value={`${passRate}%`}
-          subtitle={`${passedCount} of ${totalAttemptsCount} passed`}
+          title="Student Pass Rate"
+          value={`${uniquePassRate}%`}
+          subtitle={`${uniqueStudentsPassed} of ${uniqueStudentIds.length} unique students passed`}
           icon={<CheckCircle size={20} />}
           iconBg="bg-indigo-500/10 text-indigo-400 border border-indigo-500/20"
         />

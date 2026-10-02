@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
-import { Menu, Bell, Search, User, LogOut, Settings, AlertTriangle } from 'lucide-react'
+import { Menu, Bell, Search, User, LogOut, Settings, Clock } from 'lucide-react'
 import { useAuthStore } from '@/store/authStore'
 import { useNotificationStore } from '@/store/notificationStore'
 
@@ -8,14 +8,27 @@ interface HeaderProps {
   onMobileMenuToggle?: () => void
 }
 
+/** Decode JWT exp claim without external lib */
+function getTokenExpirySeconds(token: string | null): number | null {
+  if (!token) return null
+  try {
+    const payload = JSON.parse(atob(token.split('.')[1]))
+    if (!payload.exp) return null
+    return payload.exp - Math.floor(Date.now() / 1000)
+  } catch {
+    return null
+  }
+}
+
 export function Header({ onMobileMenuToggle }: HeaderProps) {
   const location = useLocation()
   const navigate = useNavigate()
-  const { user, logout } = useAuthStore()
+  const { user, logout, token } = useAuthStore()
   const { unreadCount } = useNotificationStore()
   const [dropdownOpen, setDropdownOpen] = useState(false)
   const [showLogoutModal, setShowLogoutModal] = useState(false)
   const [searchVal, setSearchVal] = useState('')
+  const [sessionExpiryWarn, setSessionExpiryWarn] = useState(false)
   const dropdownRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -31,6 +44,22 @@ export function Header({ onMobileMenuToggle }: HeaderProps) {
       document.removeEventListener('mousedown', handleClickOutside)
     }
   }, [dropdownOpen])
+
+  // P2: JWT token expiry warning — check every 60s, warn 10 minutes before expiry
+  useEffect(() => {
+    const checkExpiry = () => {
+      const secsLeft = getTokenExpirySeconds(token ?? null)
+      if (secsLeft !== null && secsLeft > 0 && secsLeft <= 600) {
+        setSessionExpiryWarn(true)
+      } else {
+        setSessionExpiryWarn(false)
+      }
+    }
+    checkExpiry()
+    const interval = setInterval(checkExpiry, 60_000)
+    return () => clearInterval(interval)
+  }, [token])
+
 
   // Compute title from route
   const getPageTitle = () => {
@@ -67,6 +96,7 @@ export function Header({ onMobileMenuToggle }: HeaderProps) {
   }
 
   return (
+    <>
     <header className="h-[60px] bg-[#080d18] border-b border-[#1e293b] px-4 flex items-center justify-between sticky top-0 z-30">
       <div className="flex items-center gap-3">
         <button
@@ -190,6 +220,23 @@ export function Header({ onMobileMenuToggle }: HeaderProps) {
         </div>
       )}
     </header>
+
+      {/* P2: Session expiry warning banner */}
+      {sessionExpiryWarn && (
+        <div className="sticky top-[60px] z-20 bg-amber-600/90 text-white px-4 py-2 text-xs font-bold flex items-center justify-between">
+          <span className="flex items-center gap-2">
+            <Clock size={14} />
+            Your session is expiring soon. Save your work and re-login to continue.
+          </span>
+          <button
+            onClick={() => { logout(); navigate('/login') }}
+            className="underline text-white text-xs font-bold ml-4 hover:text-amber-100"
+          >
+            Re-login now
+          </button>
+        </div>
+      )}
+    </>
   )
 }
 export default Header
