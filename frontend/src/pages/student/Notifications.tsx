@@ -26,7 +26,7 @@ export default function Notifications() {
         })
       }
     } catch {
-      // fallback
+      // fallback — store retains last state
     }
   }
 
@@ -34,6 +34,25 @@ export default function Notifications() {
     document.title = 'Notifications — Kollab'
     fetchNotifs()
   }, [])
+
+  // Fix stale badge: sync markAllAsRead to backend then re-fetch
+  const handleMarkAllRead = async () => {
+    markAllAsRead()   // optimistic UI update
+    try {
+      const { notificationsApi } = await import('@/api/notifications.api')
+      await notificationsApi.markAllAsRead()
+      await fetchNotifs()   // re-sync from DB so badge is accurate
+    } catch { /* already updated in store */ }
+  }
+
+  // Fix stale badge: sync individual markAsRead to backend
+  const handleMarkRead = async (id: string) => {
+    markAsRead(id)   // optimistic
+    try {
+      const { notificationsApi } = await import('@/api/notifications.api')
+      await notificationsApi.markAsRead(id)
+    } catch { /* already updated in store */ }
+  }
 
   const handleRespond = async (notif: typeof notifications[0], accept: boolean) => {
     setRespondingId(notif.id)
@@ -127,7 +146,7 @@ export default function Notifications() {
           )}
         </div>
         <button
-          onClick={markAllAsRead}
+          onClick={handleMarkAllRead}
           className="px-4 py-2 rounded-xl bg-[#0f172a] border border-[#1e293b] hover:border-slate-600 text-slate-300 text-xs font-semibold flex items-center gap-2 transition-colors"
         >
           <CheckCircle2 size={16} /> Mark All as Read
@@ -170,7 +189,7 @@ export default function Notifications() {
             return (
               <div
                 key={notif.id}
-                onClick={() => markAsRead(notif.id)}
+                onClick={() => handleMarkRead(notif.id)}
                 className={`p-4 rounded-2xl border transition-all duration-300 cursor-pointer group ${
                   !notif.read
                     ? 'bg-[#0f172a] border-indigo-500/30 border-l-4 border-l-indigo-500 shadow-lg shadow-indigo-900/20'

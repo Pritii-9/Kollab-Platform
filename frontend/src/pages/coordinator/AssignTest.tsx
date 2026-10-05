@@ -127,6 +127,17 @@ export default function AssignTest() {
       return
     }
 
+    // Duplicate deployment check — warn if same skill already deployed to same cohort
+    const existingDuplicate = deployedTests.find(
+      t => t.skillName?.toLowerCase() === selectedSkill.toLowerCase()
+    )
+    if (existingDuplicate) {
+      const confirmed = window.confirm(
+        `⚠️ A "${selectedSkill}" test is already deployed ("${existingDuplicate.title}").\n\nDeploy another one anyway? Students will see both tests.`
+      )
+      if (!confirmed) return
+    }
+
     setIsLoading(true)
     try {
       await testsApi.createTest({
@@ -151,8 +162,13 @@ export default function AssignTest() {
       await loadDeploymentsAndAnalytics()
 
       setTimeout(() => setIsSuccess(false), 3500)
-    } catch {
-      toast.error('Failed to assign test. Please try again.')
+    } catch (err: any) {
+      const detail = err?.response?.data?.detail
+      if (detail?.includes('past')) {
+        toast.error(`Due date error: ${detail}`)
+      } else {
+        toast.error('Failed to assign test. Please try again.')
+      }
     } finally {
       setIsLoading(false)
     }
@@ -423,10 +439,18 @@ export default function AssignTest() {
               <div>
                 <label className="block text-[10px] font-bold text-slate-400 uppercase mb-0.5">Selection Target</label>
                 <CustomSelect value={targetVal} onChange={setTargetVal} options={targetType === 'branch' ? branchOptions : targetType === 'year' ? yearOptions : individualOptions} />
+                <span className="text-[9px] text-slate-500 mt-1 block">
+                  {targetType === 'branch' ? 'Cohort: ~80-120 registered students' : targetType === 'year' ? 'Cohort: All department batches in year' : 'Broadcast to all active students'}
+                </span>
               </div>
               <div>
                 <label className="block text-[10px] font-bold text-slate-400 uppercase mb-0.5">Deadline</label>
                 <CustomDatePicker value={dueDate} onChange={setDueDate} placeholder="Select deadline..." />
+                {dueDate && new Date(dueDate).setHours(23, 59, 59, 999) < Date.now() && (
+                  <span className="text-[10px] text-rose-400 font-semibold mt-1 flex items-center gap-1">
+                    <AlertCircle size={10} /> Date is in the past
+                  </span>
+                )}
               </div>
             </div>
           </div>

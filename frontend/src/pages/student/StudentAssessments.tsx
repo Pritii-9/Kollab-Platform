@@ -129,6 +129,8 @@ export default function StudentAssessments() {
               {pendingTests.map((t) => {
                 const attemptsTaken = getAttemptCount(t.id, t.skillName)
                 const maxAllowed = t.attempts || 1
+                const isExpired = t.dueDate ? new Date(t.dueDate).setHours(23, 59, 59, 999) < Date.now() : false
+
                 return (
                   <div
                     key={t.id}
@@ -139,9 +141,20 @@ export default function StudentAssessments() {
                         <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">
                           {t.skillName || 'Skill Test'}
                         </span>
-                        <span className="text-[11px] text-amber-400 font-semibold flex items-center gap-1">
-                          <Clock size={12} /> {t.timeLimit || 45} Mins
-                        </span>
+                        <div className="flex items-center gap-2">
+                          {t.dueDate && (
+                            <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-lg border ${
+                              isExpired
+                                ? 'bg-rose-500/10 text-rose-400 border-rose-500/20'
+                                : 'bg-slate-800 text-slate-300 border-slate-700'
+                            }`}>
+                              {isExpired ? 'Deadline Passed' : `Due: ${t.dueDate}`}
+                            </span>
+                          )}
+                          <span className="text-[11px] text-amber-400 font-semibold flex items-center gap-1">
+                            <Clock size={12} /> {t.timeLimit || 45} Mins
+                          </span>
+                        </div>
                       </div>
                       <h4 className="text-base font-bold text-white">{t.title || `${t.skillName} Assessment`}</h4>
                       <p className="text-xs text-slate-400">
@@ -156,12 +169,21 @@ export default function StudentAssessments() {
                           Attempt {attemptsTaken + 1} of {maxAllowed}
                         </span>
                       </div>
-                      <button
-                        onClick={() => navigate(`/student/test/${t.id}`)}
-                        className="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs shadow-md shadow-indigo-600/20 flex items-center gap-1.5 transition-all cursor-pointer"
-                      >
-                        Start Test <ArrowRight size={14} />
-                      </button>
+                      {isExpired ? (
+                        <button
+                          disabled
+                          className="px-4 py-2 rounded-xl bg-slate-800 text-slate-500 font-semibold text-xs border border-slate-700 cursor-not-allowed"
+                        >
+                          Deadline Passed
+                        </button>
+                      ) : (
+                        <button
+                          onClick={() => navigate(`/student/test/${t.id}`)}
+                          className="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs shadow-md shadow-indigo-600/20 flex items-center gap-1.5 transition-all cursor-pointer"
+                        >
+                          Start Test <ArrowRight size={14} />
+                        </button>
+                      )}
                     </div>
                   </div>
                 )

@@ -15,8 +15,20 @@ export default function TakeTest() {
   const [isSubmitModalOpen, setIsSubmitModalOpen] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
   const [isSubmitting, setIsSubmitting] = useState(false)   // ← P0: prevents double-submit
+  const [isOffline, setIsOffline] = useState(!navigator.onLine)
   const [error, setError] = useState<string | null>(null)
   const [startTime] = useState<number>(Date.now())
+
+  useEffect(() => {
+    const handleOnline = () => setIsOffline(false)
+    const handleOffline = () => setIsOffline(true)
+    window.addEventListener('online', handleOnline)
+    window.addEventListener('offline', handleOffline)
+    return () => {
+      window.removeEventListener('online', handleOnline)
+      window.removeEventListener('offline', handleOffline)
+    }
+  }, [])
 
   useEffect(() => {
     document.title = 'Proctored Test — Kollab'
@@ -183,7 +195,11 @@ export default function TakeTest() {
   }
 
   return (
-    <div className="min-h-screen bg-[#080d18] text-slate-100 flex flex-col justify-between select-none">
+    <div
+      onContextMenu={(e) => e.preventDefault()}
+      onCopy={(e) => e.preventDefault()}
+      className="min-h-screen bg-[#080d18] text-slate-100 flex flex-col justify-between select-none"
+    >
       {/* Top Fixed Bar */}
       <header className="h-[52px] bg-[#0a0f1e] border-b border-[#1e293b] px-6 flex items-center justify-between">
         <div className="flex items-center gap-3">
@@ -212,6 +228,13 @@ export default function TakeTest() {
           </span>
         </div>
       </header>
+
+      {/* Offline Alert Banner */}
+      {isOffline && (
+        <div className="bg-amber-600/95 text-white px-4 py-2 text-xs font-bold text-center flex items-center justify-center gap-2 animate-pulse">
+          <AlertTriangle size={16} /> ⚠️ Internet Disconnected. Answers are safely backed up locally. Reconnect to submit.
+        </div>
+      )}
 
       {/* Warning Banner */}
       {warningBanner && (

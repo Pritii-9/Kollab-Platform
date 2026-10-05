@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuthStore } from '@/store/authStore'
 import { DEPARTMENTS } from '@/utils/constants'
-import { GraduationCap, CheckCircle2, Eye, EyeOff, ArrowRight, Code } from 'lucide-react'
+import { GraduationCap, CheckCircle2, Eye, EyeOff, ArrowRight, Lock } from 'lucide-react'
 import CustomSelect from '@/components/shared/CustomSelect'
 import toast from 'react-hot-toast'
 
@@ -52,9 +52,40 @@ export default function Login() {
   }, [regStep, otpTimer])
 
   const [loginError, setLoginError] = useState<string | null>(null)
-  
+
+  // Login attempt counter — warns after 2 fails, locks for 30s at 5
+  const [loginAttempts, setLoginAttempts] = useState(0)
+  const [lockedUntil, setLockedUntil] = useState<number | null>(null)
+  const [lockCountdown, setLockCountdown] = useState(0)
+
+  // Forgot password modal state
+  const [showForgotModal, setShowForgotModal] = useState(false)
+  const [forgotEmail, setForgotEmail] = useState('')
+  const [forgotOtp, setForgotOtp] = useState(['', '', '', '', '', ''])
+  const [forgotStep, setForgotStep] = useState<'email' | 'otp' | 'newpass'>('email')
+  const [forgotNewPass, setForgotNewPass] = useState('')
+  const [forgotConfirmPass, setForgotConfirmPass] = useState('')
+  const [forgotLoading, setForgotLoading] = useState(false)
+  const [showForgotPwd, setShowForgotPwd] = useState(false)
+
+  // Lockout countdown ticker
+  useEffect(() => {
+    if (!lockedUntil) return
+    const interval = setInterval(() => {
+      const remaining = Math.max(0, Math.ceil((lockedUntil - Date.now()) / 1000))
+      setLockCountdown(remaining)
+      if (remaining === 0) { setLockedUntil(null); setLoginAttempts(0) }
+    }, 1000)
+    return () => clearInterval(interval)
+  }, [lockedUntil])
+
   const handleLoginSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    // Lockout guard
+    if (lockedUntil && Date.now() < lockedUntil) {
+      setLoginError(`Too many failed attempts. Please wait ${lockCountdown}s before trying again.`)
+      return
+    }
     setIsLoading(true)
     setLoginError(null)
     try {
@@ -62,14 +93,63 @@ export default function Login() {
         email: loginEmail,
         password: loginPassword,
       })
+      setLoginAttempts(0)
       login(response.user, response.access_token)
       navigate(response.user.role === 'coordinator' ? '/coordinator/dashboard' : '/student/dashboard')
     } catch (err: any) {
-      setLoginError(err.response?.data?.detail || 'Invalid email or password')
+      const newAttempts = loginAttempts + 1
+      setLoginAttempts(newAttempts)
+      if (newAttempts >= 5) {
+        setLockedUntil(Date.now() + 30_000)
+        setLoginError('Account locked for 30 seconds after 5 failed attempts.')
+      } else {
+        const left = 5 - newAttempts
+        setLoginError(
+          `${err.response?.data?.detail || 'Invalid email or password'}` +
+          (newAttempts >= 2 ? ` — ${left} attempt${left !== 1 ? 's' : ''} remaining before lockout.` : '')
+        )
+      }
     } finally {
       setIsLoading(false)
     }
   }
+
+  const handleForgotSendOtp = async () => {
+    if (!forgotEmail.trim() || !forgotEmail.includes('@')) { toast.error('Enter a valid email'); return }
+    setForgotLoading(true)
+    try {
+      await authApi.registerStep1({ name: '', email: forgotEmail.trim().toLowerCase(), department: '', year: '', batch: '', rollNumber: '' })
+    } catch { /* security: show same success message regardless */ }
+    finally {
+      setForgotLoading(false)
+      setForgotStep('otp')
+      toast.success('If this email is registered, a reset OTP has been sent.')
+    }
+  }
+
+  const handleForgotOtpChange = (val: string, idx: number) => {
+    const newOtp = [...forgotOtp]; newOtp[idx] = val.slice(-1); setForgotOtp(newOtp)
+    if (val && idx < 5) document.getElementById(`fotp-${idx + 1}`)?.focus()
+  }
+
+  const handleForgotReset = async () => {
+    if (forgotOtp.join('').length < 6) { toast.error('Enter the full 6-digit code'); return }
+    if (forgotNewPass.length < 6) { toast.error('Password must be at least 6 characters'); return }
+    if (forgotNewPass !== forgotConfirmPass) { toast.error('Passwords do not match'); return }
+    setForgotLoading(true)
+    try {
+      await authApi.verifyOtpAndRegister(
+        { otp: forgotOtp.join(''), password: forgotNewPass, confirmPassword: forgotConfirmPass },
+        { name: '', email: forgotEmail, department: '', year: '', batch: '', rollNumber: '' }
+      )
+      toast.success('Password reset! Sign in with your new password.')
+      setShowForgotModal(false)
+      setForgotStep('email'); setForgotEmail(''); setForgotOtp(['', '', '', '', '', ''])
+      setForgotNewPass(''); setForgotConfirmPass('')
+    } catch { toast.error('OTP invalid or expired. Please try again.'); setForgotStep('email') }
+    finally { setForgotLoading(false) }
+  }
+
 
   const handleOtpChange = (val: string, idx: number) => {
     if (val.length > 1) {
@@ -185,8 +265,17 @@ export default function Login() {
           {activeTab === 'login' ? (
             <form onSubmit={handleLoginSubmit} className="space-y-4">
               {loginError && (
-                <div className="bg-rose-500/10 text-rose-400 p-3 rounded-xl border border-rose-500/20 text-xs font-semibold text-center">
-                  {loginError}
+                <div className={`p-3 rounded-xl border text-xs font-semibold text-center ${
+                  lockedUntil
+                    ? 'bg-rose-900/30 text-rose-300 border-rose-500/40'
+                    : loginAttempts >= 2
+                    ? 'bg-amber-500/10 text-amber-300 border-amber-500/30'
+                    : 'bg-rose-500/10 text-rose-400 border-rose-500/20'
+                }`}>
+                  {lockedUntil
+                    ? <><Lock size={12} className="inline mr-1" />Account locked — {lockCountdown}s remaining</>
+                    : loginError
+                  }
                 </div>
               )}
 
@@ -224,23 +313,30 @@ export default function Login() {
               </div>
 
               <div className="flex items-center justify-between text-xs">
-                <span className="text-slate-400">Coordinator: coordinator@college.edu / password123</span>
-                <a href="#" className="text-indigo-400 hover:underline">Forgot?</a>
+                <span className="text-slate-500">Coordinator: coordinator@college.edu</span>
+                <button
+                  type="button"
+                  onClick={() => { setShowForgotModal(true); setForgotStep('email') }}
+                  className="text-indigo-400 hover:underline font-semibold"
+                >
+                  Forgot password?
+                </button>
               </div>
 
               <button
                 type="submit"
-                disabled={isLoading}
-                className="w-full py-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 font-bold text-white text-sm shadow-lg shadow-indigo-600/25 transition-all flex items-center justify-center gap-2"
+                disabled={isLoading || (!!lockedUntil && Date.now() < lockedUntil)}
+                className="w-full py-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 font-bold text-white text-sm shadow-lg shadow-indigo-600/25 transition-all flex items-center justify-center gap-2"
               >
                 {isLoading ? (
                   <span className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                ) : lockedUntil ? (
+                  <><Lock size={15} /> Locked ({lockCountdown}s)</>
                 ) : (
-                  <>
-                    Sign In to Dashboard <ArrowRight size={16} />
-                  </>
+                  <>Sign In to Dashboard <ArrowRight size={16} /></>
                 )}
               </button>
+
 
               <div className="relative my-6">
                 <div className="absolute inset-0 flex items-center">
@@ -494,6 +590,90 @@ export default function Login() {
           )}
         </div>
       </div>
+
+      {/* Forgot Password Modal */}
+      {showForgotModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
+          <div className="bg-[#0f172a] border border-[#1e293b] rounded-2xl p-6 max-w-sm w-full shadow-2xl space-y-4">
+            <div className="flex items-center justify-between">
+              <h3 className="text-base font-extrabold text-white flex items-center gap-2">
+                <Lock size={16} className="text-indigo-400" /> Reset Password
+              </h3>
+              <button onClick={() => { setShowForgotModal(false); setForgotStep('email') }} className="text-slate-400 hover:text-white text-xl leading-none">&times;</button>
+            </div>
+
+            {forgotStep === 'email' && (
+              <div className="space-y-3">
+                <p className="text-xs text-slate-400">Enter your registered college email. We'll send a 6-digit OTP.</p>
+                <input
+                  type="email"
+                  value={forgotEmail}
+                  onChange={(e) => setForgotEmail(e.target.value)}
+                  placeholder="priti@college.edu"
+                  className="w-full px-3 py-2 rounded-xl bg-[#080d18] border border-[#1e293b] text-sm text-white focus:outline-none focus:border-indigo-500"
+                />
+                <button
+                  onClick={handleForgotSendOtp}
+                  disabled={forgotLoading}
+                  className="w-full py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 disabled:opacity-60 text-white font-bold text-xs"
+                >
+                  {forgotLoading ? 'Sending OTP...' : 'Send Reset OTP →'}
+                </button>
+              </div>
+            )}
+
+            {forgotStep === 'otp' && (
+              <div className="space-y-3">
+                <p className="text-xs text-slate-400">Enter the 6-digit code sent to <span className="text-indigo-300 font-semibold">{forgotEmail}</span></p>
+                <div className="flex gap-2 justify-between">
+                  {forgotOtp.map((digit, idx) => (
+                    <input
+                      key={idx}
+                      id={`fotp-${idx}`}
+                      type="text"
+                      maxLength={1}
+                      value={digit}
+                      onChange={(e) => handleForgotOtpChange(e.target.value, idx)}
+                      className="w-10 h-11 text-center font-bold text-lg rounded-xl bg-[#0f172a] border border-[#1e293b] text-white focus:border-indigo-500 focus:outline-none"
+                    />
+                  ))}
+                </div>
+                <div className="space-y-2">
+                  <div className="relative">
+                    <input
+                      type={showForgotPwd ? 'text' : 'password'}
+                      value={forgotNewPass}
+                      onChange={(e) => setForgotNewPass(e.target.value)}
+                      placeholder="New Password (min 6 chars)"
+                      className="w-full px-3 py-2 rounded-xl bg-[#080d18] border border-[#1e293b] text-sm text-white focus:outline-none focus:border-indigo-500 pr-9"
+                    />
+                    <button type="button" onClick={() => setShowForgotPwd(!showForgotPwd)} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400">
+                      {showForgotPwd ? <EyeOff size={14} /> : <Eye size={14} />}
+                    </button>
+                  </div>
+                  <input
+                    type="password"
+                    value={forgotConfirmPass}
+                    onChange={(e) => setForgotConfirmPass(e.target.value)}
+                    placeholder="Confirm New Password"
+                    className="w-full px-3 py-2 rounded-xl bg-[#080d18] border border-[#1e293b] text-sm text-white focus:outline-none focus:border-indigo-500"
+                  />
+                </div>
+                <button
+                  onClick={handleForgotReset}
+                  disabled={forgotLoading}
+                  className="w-full py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 disabled:opacity-60 text-white font-bold text-xs"
+                >
+                  {forgotLoading ? 'Resetting...' : 'Reset Password'}
+                </button>
+                <button onClick={() => setForgotStep('email')} className="w-full text-xs text-slate-400 hover:text-white text-center">
+                  ← Back to email
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   )
 }

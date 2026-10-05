@@ -8,6 +8,8 @@ from models.skill import StudentSkill
 from models.test import TestAttempt
 from models.project import ProjectMember, Task
 
+from services.ml_service import ml_predictor
+
 logger = logging.getLogger(__name__)
 
 class ReadinessService:
@@ -27,20 +29,20 @@ class ReadinessService:
                 "studentId": student_id,
                 "readinessScore": 0,
                 "status": "Ineligible",
-                "riskLevel": "High",
+                "riskLevel": "High Risk",
                 "radarData": [],
-                "recommendations": ["Complete your profile registration."]
+                "recommendations": ["Complete your profile registration."],
+                "modelType": "RandomForestClassifier-v1"
             }
 
-        # 1. Skill Mastery Component (Weight: 30%)
+        # 1. Skill Mastery Component
         verified_skills = [s for s in student.skills if s.status == "verified"]
         avg_skill_score = (
             sum(s.score for s in verified_skills) / len(verified_skills)
             if verified_skills else 50.0
         )
-        skill_component = (avg_skill_score / 100.0) * 30.0
 
-        # 2. Proctored Test Score Component (Weight: 30%)
+        # 2. Proctored Test Score Component
         test_attempts_query = select(TestAttempt).filter(TestAttempt.student_id == student_id)
         test_res = await session.execute(test_attempts_query)
         attempts = test_res.scalars().all()
@@ -49,47 +51,31 @@ class ReadinessService:
             avg_test_percent = sum(a.percentage for a in attempts) / len(attempts)
         else:
             avg_test_percent = 65.0  # Baseline metric if no tests taken yet
-        test_component = (avg_test_percent / 100.0) * 30.0
 
-        # 3. Kanban Velocity & Contribution Component (Weight: 25%)
+        # 3. Kanban Velocity & Contribution Component
         tasks_query = select(Task).filter(Task.assignee_id == student_id)
         tasks_res = await session.execute(tasks_query)
         completed_tasks = [t for t in tasks_res.scalars().all() if t.status == "Done"]
         kanban_velocity = min(len(completed_tasks) * 20.0, 100.0)
-        velocity_component = (kanban_velocity / 100.0) * 25.0
 
-        # 4. Academic CGPA & Trust Score Component (Weight: 15%)
-        cgpa_score = ((student.cgpa or 7.0) / 10.0) * 100.0
-        academic_component = (cgpa_score / 100.0) * 15.0
+        # 4. Academic CGPA & Trust Score
+        cgpa_val = float(student.cgpa or 7.0)
+        cgpa_score = (cgpa_val / 10.0) * 100.0
+        trust_val = float(student.trust_score or 75.0)
 
-        # Total Placement Readiness Percentage
-        total_readiness = int(round(skill_component + test_component + velocity_component + academic_component))
-        total_readiness = min(max(total_readiness, 15), 99)
+        # 5. Execute Scikit-Learn Random Forest Classifier Inference
+        ml_prediction = ml_predictor.predict(
+            cgpa=cgpa_val,
+            trust_score=trust_val,
+            verified_skills_count=len(verified_skills),
+            assessment_avg=avg_test_percent,
+            sprint_velocity=kanban_velocity
+        )
 
-        # Classification Logic
-        if total_readiness >= 80:
-            status = "Placement Ready"
-            risk_level = "Low Risk"
-        elif total_readiness >= 60:
-            status = "On Track"
-            risk_level = "Moderate"
-        else:
-            status = "At Risk"
-            risk_level = "High Risk"
-
-        # Generate ML Actionable Recommendations
-        recommendations: List[str] = []
-        if len(verified_skills) < 3:
-            recommendations.append("Attempt proctored assessments in Python or React to verify 2 more skill badges.")
-        if len(attempts) == 0:
-            recommendations.append("Take the recommended React.js Advanced Proctored Test to benchmark score.")
-        if len(completed_tasks) < 2:
-            recommendations.append("Complete pending Kanban tasks on your active collaborative project to boost contribution velocity.")
-        if student.cgpa and student.cgpa >= 8.0:
-            recommendations.append("High CGPA unlocked eligibility for Tier-1 Amazon & Google campus placement drives.")
-
-        if not recommendations:
-            recommendations.append("Maintain current project velocity and complete upcoming milestone evaluations.")
+        total_readiness = ml_prediction["readinessScore"]
+        status = ml_prediction["status"]
+        risk_level = ml_prediction["riskLevel"]
+        recommendations = ml_prediction["recommendations"]
 
         # Radar Breakdown Chart Data
         radar_data = [
@@ -97,7 +83,7 @@ class ReadinessService:
             {"subject": "Proctored Tests", "current": int(avg_test_percent), "target": 85},
             {"subject": "Kanban Velocity", "current": int(kanban_velocity), "target": 80},
             {"subject": "Academia CGPA", "current": int(cgpa_score), "target": 85},
-            {"subject": "Trust Score", "current": student.trust_score or 75, "target": 90}
+            {"subject": "Trust Score", "current": int(trust_val), "target": 90}
         ]
 
         return {
@@ -110,5 +96,8 @@ class ReadinessService:
             "testsCompletedCount": len(attempts),
             "tasksCompletedCount": len(completed_tasks),
             "radarData": radar_data,
-            "recommendations": recommendations
+            "recommendations": recommendations,
+            "probabilities": ml_prediction.get("probabilities", {}),
+            "featureWeights": ml_prediction.get("featureWeights", {}),
+            "modelType": ml_prediction.get("modelType", "RandomForestClassifier-v1")
         }
